@@ -348,8 +348,52 @@ func (s *ReservationService) CancelReservation(ctx context.Context, reservationI
 		return errs.ErrReservationCannotBeCancelled
 	}
 
-	reservation.Status = domain.ReservationCancelled
-	return s.reservationRepository.UpdateReservation(ctx, reservation)
+	seat, err := s.flightSeatRepository.GetByID(ctx, reservation.FlightSeatID)
+	if err != nil {
+		return err
+	}
+
+	if seat == nil {
+		return errs.ErrFlightSeatNotFound
+	}
+
+	// Creating a transaction
+	txErr := s.uow.Do(ctx, func(repos uow.Repositories) error {
+
+		reservation.Status = domain.ReservationCancelled
+		seat.Status = domain.SeatAvailable
+		if err := repos.Reservation.UpdateReservation(ctx, reservation); err != nil {
+			return err
+		}
+
+		if err := repos.FlightSeat.UpdateFlightSeat(ctx, seat); err != nil {
+			return err
+		}
+
+		return nil
+	})
+
+	if txErr != nil {
+		return txErr
+	}
+
+	redisKey := utils.GenerateSeatHoldKey(reservation.FlightSeatID)
+	ok, err := s.redis.Del(ctx, redisKey).Result()
+	if err != nil {
+		return err
+	}
+
+	if ok == 0 {
+		log.Printf("No Redis hold found for reservation %s and seat %s", reservation.ReservationRef, reservation.FlightSeatID)
+	}
+
+	log.Printf(
+		"Cancelled reservation %s and released seat %s",
+		reservation.ReservationRef,
+		reservation.FlightSeatID,
+	)
+
+	return nil
 
 }
 
@@ -371,4 +415,77 @@ func (s *ReservationService) StartExpirationWorker(ctx context.Context) {
 			}
 		}
 	}
+}
+
+func (s *ReservationService) ConfirmReservation(ctx context.Context, reservationID string) error {
+	if err := validation.ValidateReservationID(reservationID); err != nil {
+		return err
+	}
+	reservation, err := s.reservationRepository.GetReservationByID(ctx, reservationID)
+	if err != nil {
+		return err
+	}
+
+	if reservation == nil {
+		return errs.ErrReservationNotFound
+	}
+
+	//Really no need to check if user exists as a reservation would inherently require a user
+	if reservation.Status != domain.ReservationPending {
+		return errs.ErrInvalidTransactionState
+	}
+
+	seat, err := s.flightSeatRepository.GetByID(ctx, reservation.FlightSeatID)
+	if err != nil {
+		return err
+	}
+
+	if seat == nil {
+		return errs.ErrFlightSeatNotFound
+	}
+
+	if seat.Status != domain.SeatHeld {
+		return errs.ErrReservationCannotBeMade
+	}
+	//Why check if lock exists if the seat status is on hold no point
+	redisKey := utils.GenerateSeatHoldKey(reservation.FlightSeatID)
+
+	txErr := s.uow.Do(ctx, func(repos uow.Repositories) error {
+
+		seat.Status = domain.SeatBooked
+		reservation.Status = domain.ReservationConfirmed
+		if err := repos.Reservation.UpdateReservation(ctx, reservation); err != nil {
+			return err
+		}
+		if err := repos.FlightSeat.UpdateFlightSeat(ctx, seat); err != nil {
+			return err
+		}
+
+		return nil
+	})
+	if txErr != nil {
+		return txErr
+	}
+
+	log.Printf(
+		"Confirmed reservation %s and booked seat %s",
+		reservation.ReservationRef,
+		reservation.FlightSeatID,
+	)
+
+	ok, err := s.redis.Del(ctx, redisKey).Result()
+	if err != nil {
+		return err
+	}
+
+	if ok == 0 {
+		log.Printf(
+			"No Redis hold found for reservation %s and seat %s",
+			reservation.ReservationRef,
+			reservation.FlightSeatID,
+		)
+	}
+
+	return nil
+
 }

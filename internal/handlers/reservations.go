@@ -35,6 +35,17 @@ func (h *ReservationHandler) ReserveSeat(w http.ResponseWriter, r *http.Request)
 	w.WriteHeader(http.StatusCreated)
 }
 
+func (h *ReservationHandler) ConfirmReservation(w http.ResponseWriter, r *http.Request) {
+	reservationID := r.PathValue("id")
+
+	if err := h.reservationService.ConfirmReservation(r.Context(), reservationID); err != nil {
+		writeReservationError(w, err)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
 func (h *ReservationHandler) GetReservationByID(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 
@@ -112,7 +123,9 @@ func writeReservationError(w http.ResponseWriter, err error) {
 		errs.ErrReservationCannotBeCancelled,
 		errs.ErrUserReservationMismatch,
 		errs.ErrFlightSeatNotAvailable,
-		errs.ErrFlightStatusInvalid:
+		errs.ErrFlightStatusInvalid,
+		errs.ErrInvalidTransactionState,
+		errs.ErrReservationCannotBeMade:
 		http.Error(w, err.Error(), http.StatusConflict)
 
 	default:

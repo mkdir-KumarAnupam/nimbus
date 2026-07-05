@@ -21,6 +21,8 @@ var (
 	ErrUserReservationMismatch              = errors.New("user reservation mismatch")
 	ErrReservationCannotBeCancelled         = errors.New("reservation can not be cancelled")
 	ErrReservationReferenceGenerationFailed = errors.New("failed to generate unique reservation reference")
+	ErrReservationCannotBeMade              = errors.New("failed to make reservation")
+	ErrInvalidTransactionState              = errors.New("invalid transaction state")
 
 	// Flight errors
 	ErrFlightNotFound        = errors.New("flight not found")
@@ -48,4 +50,7 @@ var (
 	ErrFlightSeatNotFound      = errors.New("flight seat not found")
 	ErrFlightSeatAlreadyExists = errors.New("flight seat already exists")
 	ErrFlightSeatNotAvailable  = errors.New("flight seat is not available")
+
+	//Transaction errors
+	ErrTransactionReservationFailed = errors.New("transaction while confirming reservation failed")
 )

@@ -169,14 +169,14 @@ func registerFlightSeatRoutes(mux *http.ServeMux, flightSeatHandler *handlers.Fl
 }
 
 func registerReservationRoutes(mux *http.ServeMux, reservationHandler *handlers.ReservationHandler) {
-	mux.HandleFunc("GET /api/v1/reservations", reservationHandler.ListReservations)
-
-	// Reserve a specific flight seat
+	// Reservation lifecycle
 	mux.HandleFunc("POST /api/v1/reservations/reserve", reservationHandler.ReserveSeat)
+	mux.HandleFunc("POST /api/v1/reservations/{id}/confirm", reservationHandler.ConfirmReservation)
+	mux.HandleFunc("DELETE /api/v1/reservations/{id}/user/{userId}", reservationHandler.CancelReservation)
 
+	// Queries
+	mux.HandleFunc("GET /api/v1/reservations", reservationHandler.ListReservations)
 	mux.HandleFunc("GET /api/v1/reservations/{id}", reservationHandler.GetReservationByID)
 	mux.HandleFunc("GET /api/v1/reservations/user/{userId}", reservationHandler.GetReservationsByUserID)
 	mux.HandleFunc("GET /api/v1/reservations/flight/{flightId}", reservationHandler.GetReservationsByFlightID)
-
-	mux.HandleFunc("DELETE /api/v1/reservations/{id}/user/{userId}", reservationHandler.CancelReservation)
 }
