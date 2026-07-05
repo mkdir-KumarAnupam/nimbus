@@ -38,6 +38,18 @@ func ValidateFlightNumber(flightNumber string) error {
 	return nil
 }
 
+func ValidateFlightID(flightID string) error {
+	if strings.TrimSpace(flightID) == "" {
+		return errors.New("flight id cannot be empty")
+	}
+
+	if _, err := uuid.Parse(flightID); err != nil {
+		return errors.New("flight id must be a valid uuid")
+	}
+
+	return nil
+}
+
 func ValidateFlightAircraftID(aircraftID string) error {
 	if strings.TrimSpace(aircraftID) == "" {
 		return errors.New("aircraft id cannot be empty")

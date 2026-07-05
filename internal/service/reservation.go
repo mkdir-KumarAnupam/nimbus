@@ -1,0 +1,334 @@
+package service
+
+import (
+	"context"
+	"time"
+
+	"github.com/google/uuid"
+	"github.com/mkdir-KumarAnupam/airline-booking/internal/domain"
+	"github.com/mkdir-KumarAnupam/airline-booking/internal/dto"
+	"github.com/mkdir-KumarAnupam/airline-booking/internal/errs"
+	"github.com/mkdir-KumarAnupam/airline-booking/internal/repository"
+	"github.com/mkdir-KumarAnupam/airline-booking/internal/utils"
+	"github.com/mkdir-KumarAnupam/airline-booking/internal/validation"
+	"github.com/redis/go-redis/v9"
+)
+
+type ReservationService struct {
+	reservationRepository repository.ReservationRepository
+	flightRepository      repository.FlightRepository
+	flightSeatRepository  repository.FlightSeatRepository
+	userRepository        repository.UserRepository
+
+	redis *redis.Client
+}
+
+const (
+	reservationReferenceLength = 6
+	maxReferenceAttempts       = 10
+	reservationHoldDuration    = 15 * time.Minute
+)
+
+func NewReservationService(
+	reservationRepo repository.ReservationRepository,
+	flightRepo repository.FlightRepository,
+	flightSeatRepo repository.FlightSeatRepository,
+	userRepo repository.UserRepository,
+	redis *redis.Client,
+) *ReservationService {
+	return &ReservationService{
+		reservationRepository: reservationRepo,
+		flightRepository:      flightRepo,
+		flightSeatRepository:  flightSeatRepo,
+		userRepository:        userRepo,
+		redis:                 redis,
+	}
+}
+
+func (s *ReservationService) CreateReservation(ctx context.Context, reservation *dto.CreateReservationRequest) error {
+	if err := validation.ValidateCreateReservationRequest(reservation); err != nil {
+		return err
+	}
+
+	if err := s.validateReservationUserID(ctx, reservation.UserID); err != nil {
+		return err
+	}
+
+	flight, err := s.validateReservationFlightID(ctx, reservation.FlightID)
+	if err != nil {
+		return err
+	}
+
+	now := time.Now().UTC()
+
+	if flight.Status != domain.FlightScheduled {
+		return errs.ErrFlightStatusInvalid
+	}
+
+	if !flight.DepartureTime.After(now) {
+		return errs.ErrFlightHasDeparted
+	}
+
+	ref, err := s.generateUniqueReservationRef(ctx)
+	if err != nil {
+		return err
+	}
+
+	reserve := &domain.Reservation{
+		ID:             uuid.NewString(),
+		ReservationRef: ref,
+		UserID:         reservation.UserID,
+		FlightID:       reservation.FlightID,
+		Status:         domain.ReservationPending,
+		CreatedAt:      now,
+		ExpiresAt:      now.Add(reservationHoldDuration),
+	}
+
+	return s.reservationRepository.CreateReservation(ctx, reserve)
+}
+
+func (s *ReservationService) ReserveSeat(ctx context.Context, reservation *dto.ReserveSeatRequest) error {
+	now := time.Now().UTC()
+
+	if err := validation.ValidateReserveSeatRequest(reservation); err != nil {
+		return err
+	}
+	// Validate user
+	if err := s.validateReservationUserID(ctx, reservation.UserID); err != nil {
+		return err
+	}
+
+	// Load flight seat
+	flightSeat, err := s.flightSeatRepository.GetByID(ctx, reservation.FlightSeatID)
+	if err != nil {
+		return err
+	}
+
+	if flightSeat == nil {
+		return errs.ErrFlightSeatNotFound
+	}
+
+	flight, err := s.flightRepository.GetByID(ctx, flightSeat.FlightID)
+	if err != nil {
+		return err
+	}
+
+	if flight == nil {
+		return errs.ErrFlightNotFound
+	}
+
+	if flight.Status != domain.FlightScheduled {
+		return errs.ErrFlightStatusInvalid
+	}
+
+	if !flight.DepartureTime.After(now) {
+		return errs.ErrFlightHasDeparted
+	}
+
+	// Check seat available
+	if flightSeat.Status != domain.SeatAvailable {
+		return errs.ErrFlightSeatNotAvailable
+	}
+
+	// Acquire Redis hold
+	key := utils.GenerateSeatHoldKey(flightSeat.ID)
+
+	ok, err := s.redis.SetNX(ctx, key, reservation.UserID, reservationHoldDuration).Result()
+	if err != nil {
+		return err
+	}
+
+	if !ok {
+		return errs.ErrFlightSeatNotAvailable
+	}
+
+	// Release the Redis hold unless we succeed.
+	success := false
+	defer func() {
+		if !success {
+			_ = s.redis.Del(ctx, key).Err()
+		}
+	}()
+
+	// Generate reservation reference
+	ref, err := s.generateUniqueReservationRef(ctx)
+	if err != nil {
+		return err
+	}
+
+	// Create reservation
+	reserve := &domain.Reservation{
+		ID:             uuid.NewString(),
+		ReservationRef: ref,
+		UserID:         reservation.UserID,
+		FlightID:       flightSeat.FlightID,
+		Status:         domain.ReservationPending,
+		CreatedAt:      now,
+		ExpiresAt:      now.Add(reservationHoldDuration),
+	}
+
+	err = s.reservationRepository.CreateReservation(ctx, reserve)
+
+	if err != nil {
+		return err
+	}
+
+	// Update FlightSeat -> Held
+	flightSeat.Status = domain.SeatHeld
+
+	if err = s.flightSeatRepository.UpdateFlightSeat(ctx, flightSeat); err != nil {
+		return err
+	}
+
+	success = true
+
+	return nil
+}
+
+func (s *ReservationService) validateReservationUserID(ctx context.Context, userID string) error {
+	user, err := s.userRepository.GetUserByID(ctx, userID)
+	if err != nil {
+		return err
+	}
+
+	if user == nil {
+		return errs.ErrUserNotFound
+	}
+
+	return nil
+}
+
+func (s *ReservationService) validateReservationFlightID(ctx context.Context, flightID string) (*domain.Flight, error) {
+	flight, err := s.flightRepository.GetByID(ctx, flightID)
+	if err != nil {
+		return nil, err
+	}
+
+	if flight == nil {
+		return nil, errs.ErrFlightNotFound
+	}
+
+	return flight, nil
+}
+
+func (s *ReservationService) generateUniqueReservationRef(ctx context.Context) (string, error) {
+	for attempt := 0; attempt < maxReferenceAttempts; attempt++ {
+		ref, err := utils.GenerateReservationReference(reservationReferenceLength)
+		if err != nil {
+			return "", err
+		}
+
+		exists, err := s.reservationRefExists(ctx, ref)
+		if err != nil {
+			return "", err
+		}
+
+		if !exists {
+			return ref, nil
+		}
+	}
+
+	return "", errs.ErrReservationReferenceGenerationFailed
+}
+
+func (s *ReservationService) reservationRefExists(ctx context.Context, reservationRef string) (bool, error) {
+	return s.reservationRepository.ReservationRefExists(ctx, reservationRef)
+}
+
+func (s *ReservationService) GetReservationByID(ctx context.Context, id string) (*dto.ReservationResponse, error) {
+	if err := validation.ValidateReservationID(id); err != nil {
+		return nil, err
+	}
+
+	reservation, err := s.reservationRepository.GetReservationByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	if reservation == nil {
+		return nil, errs.ErrReservationNotFound
+	}
+
+	return resvToResponse(reservation), nil
+}
+
+func (s *ReservationService) GetReservationByUserID(ctx context.Context, id string) ([]*dto.ReservationResponse, error) {
+	if err := validation.ValidateReservationUserID(id); err != nil {
+		return nil, err
+	}
+
+	reservations, err := s.reservationRepository.GetReservationsByUserID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	responses := make([]*dto.ReservationResponse, len(reservations))
+	for i, reservation := range reservations {
+		responses[i] = resvToResponse(reservation)
+	}
+
+	return responses, nil
+}
+
+func (s *ReservationService) GetReservationByFlightID(ctx context.Context, id string) ([]*dto.ReservationResponse, error) {
+	if err := validation.ValidateReservationFlightID(id); err != nil {
+		return nil, err
+	}
+
+	reservations, err := s.reservationRepository.GetReservationsByFlightID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	responses := make([]*dto.ReservationResponse, len(reservations))
+	for i, reservation := range reservations {
+		responses[i] = resvToResponse(reservation)
+	}
+
+	return responses, nil
+}
+
+func (s *ReservationService) ListReservations(ctx context.Context) ([]*dto.ReservationResponse, error) {
+	reservations, err := s.reservationRepository.ListReservations(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	responses := make([]*dto.ReservationResponse, len(reservations))
+	for i, reservation := range reservations {
+		responses[i] = resvToResponse(reservation)
+	}
+
+	return responses, nil
+}
+
+func (s *ReservationService) CancelReservation(ctx context.Context, reservationID string, userID string) error {
+	if err := validation.ValidateReservationID(reservationID); err != nil {
+		return err
+	}
+
+	if err := validation.ValidateReservationUserID(userID); err != nil {
+		return err
+	}
+
+	reservation, err := s.reservationRepository.GetReservationByID(ctx, reservationID)
+	if err != nil {
+		return err
+	}
+
+	if reservation == nil {
+		return errs.ErrReservationNotFound
+	}
+
+	if reservation.UserID != userID {
+		return errs.ErrUserReservationMismatch
+	}
+
+	if reservation.Status != domain.ReservationPending {
+		return errs.ErrReservationCannotBeCancelled
+	}
+
+	reservation.Status = domain.ReservationCancelled
+	return s.reservationRepository.UpdateReservation(ctx, reservation)
+
+}

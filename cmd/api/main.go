@@ -3,11 +3,11 @@ package main
 import (
 	"log"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/joho/godotenv"
 	"github.com/mkdir-KumarAnupam/airline-booking/internal/auth"
+	"github.com/mkdir-KumarAnupam/airline-booking/internal/configs"
 	"github.com/mkdir-KumarAnupam/airline-booking/internal/database"
 	"github.com/mkdir-KumarAnupam/airline-booking/internal/handlers"
 	"github.com/mkdir-KumarAnupam/airline-booking/internal/middleware"
@@ -16,6 +16,7 @@ import (
 )
 
 func main() {
+
 	if err := godotenv.Load(); err != nil {
 		log.Fatal(err)
 	}
@@ -25,22 +26,30 @@ func main() {
 		log.Fatal("Could not connect to the database: " + err.Error())
 	}
 
-	log.Println("Connected to database")
+	log.Println("Connected to PostgreSQL")
 
 	sqlDB, err := db.DB()
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("Could not connect to PostgreSQL: " + err.Error())
 	}
 
 	defer sqlDB.Close()
 
-	jwtSecret := os.Getenv("JWT_SECRET")
-	if jwtSecret == "" {
-		log.Fatal("JWT_SECRET environment variable not set")
+	cfg, err := config.Load()
+	if err != nil {
+		log.Fatal(err)
 	}
 
-	jwtService := auth.NewJWTService(jwtSecret, 15*time.Minute)
+	redisClient := database.NewRedisClient(
+		cfg.RedisAddr,
+		cfg.RedisPassword,
+		cfg.RedisDB,
+	)
 
+	jwtService := auth.NewJWTService(
+		cfg.JWTSecret,
+		15*time.Minute,
+	)
 	userRepo := postgres.NewUserRepository(db)
 	userService := service.NewUserService(userRepo, jwtService)
 	userHandler := handlers.NewUserHandler(userService)
@@ -58,7 +67,19 @@ func main() {
 	flightService := service.NewFlightService(flightRepo, airportRepo, aircraftRepo)
 	flightHandler := handlers.NewFlightHandler(flightService)
 
-	mux := newMux(userHandler, authMiddleware, airportHandler, aircraftHandler, flightHandler)
+	seatRepo := postgres.NewSeatRepository(db)
+	seatService := service.NewSeatService(seatRepo)
+	seatHandler := handlers.NewSeatHandler(seatService)
+
+	flightSeatRepo := postgres.NewFlightSeatRepository(db)
+	flightSeatService := service.NewFlightSeatService(flightSeatRepo, seatRepo, flightRepo, redisClient)
+	flightSeatHandler := handlers.NewFlightSeatHandler(flightSeatService)
+
+	reservationRepo := postgres.NewReservationRepository(db)
+	reservationService := service.NewReservationService(reservationRepo, flightRepo, flightSeatRepo, userRepo, redisClient)
+	reservationHandler := handlers.NewReservationHandler(reservationService)
+
+	mux := newMux(userHandler, authMiddleware, airportHandler, aircraftHandler, flightHandler, seatHandler, flightSeatHandler, reservationHandler)
 
 	log.Println("Listening on port 8088")
 	if err := http.ListenAndServe(":8088", mux); err != nil {
@@ -72,6 +93,9 @@ func newMux(
 	airportHandler *handlers.AirportHandler,
 	aircraftHandler *handlers.AircraftHandler,
 	flightHandler *handlers.FlightHandler,
+	seatHandler *handlers.SeatHandler,
+	flightSeatHandler *handlers.FlightSeatHandler,
+	reservationHandler *handlers.ReservationHandler,
 ) *http.ServeMux {
 	mux := http.NewServeMux()
 
@@ -84,6 +108,9 @@ func newMux(
 	registerAirportRoutes(mux, airportHandler)
 	registerAircraftRoutes(mux, aircraftHandler)
 	registerFlightRoutes(mux, flightHandler)
+	registerSeatRoutes(mux, seatHandler)
+	registerFlightSeatRoutes(mux, flightSeatHandler)
+	registerReservationRoutes(mux, reservationHandler)
 
 	return mux
 }
@@ -111,4 +138,39 @@ func registerFlightRoutes(mux *http.ServeMux, flightHandler *handlers.FlightHand
 	mux.HandleFunc("GET /api/v1/flights/{id}", flightHandler.GetFlightByID)
 	mux.HandleFunc("PUT /api/v1/flights/{id}", flightHandler.UpdateFlightByID)
 	mux.HandleFunc("DELETE /api/v1/flights/{id}", flightHandler.DeleteFlightByID)
+}
+
+func registerSeatRoutes(mux *http.ServeMux, seatHandler *handlers.SeatHandler) {
+	mux.HandleFunc("POST /api/v1/seats", seatHandler.CreateSeat)
+	mux.HandleFunc("GET /api/v1/seats/{id}", seatHandler.GetSeatByID)
+	mux.HandleFunc("GET /api/v1/seats/aircraft/{aircraftId}", seatHandler.GetSeatsByAircraftID)
+	mux.HandleFunc("PUT /api/v1/seats/{id}", seatHandler.UpdateSeatByID)
+	mux.HandleFunc("DELETE /api/v1/seats/{id}", seatHandler.DeleteSeatByID)
+}
+
+func registerFlightSeatRoutes(mux *http.ServeMux, flightSeatHandler *handlers.FlightSeatHandler) {
+	mux.HandleFunc("POST /api/v1/flight-seats", flightSeatHandler.CreateFlightSeat)
+	mux.HandleFunc("GET /api/v1/flight-seats/{id}", flightSeatHandler.GetFlightSeatByID)
+	mux.HandleFunc("GET /api/v1/flight-seats/flight/{flightId}", flightSeatHandler.GetFlightSeatsByFlightID)
+	mux.HandleFunc("PUT /api/v1/flight-seats/{id}", flightSeatHandler.UpdateFlightSeatByID)
+	mux.HandleFunc("DELETE /api/v1/flight-seats/{id}", flightSeatHandler.DeleteFlightSeatByID)
+	mux.HandleFunc(
+		"POST /api/v1/flights/{flightId}/inventory",
+		flightSeatHandler.GenerateFlightInventory,
+	)
+}
+
+func registerReservationRoutes(mux *http.ServeMux, reservationHandler *handlers.ReservationHandler) {
+	mux.HandleFunc("GET /api/v1/reservations", reservationHandler.ListReservations)
+
+	mux.HandleFunc("POST /api/v1/reservations", reservationHandler.CreateReservation)
+
+	// Reserve a specific flight seat
+	mux.HandleFunc("POST /api/v1/reservations/reserve", reservationHandler.ReserveSeat)
+
+	mux.HandleFunc("GET /api/v1/reservations/{id}", reservationHandler.GetReservationByID)
+	mux.HandleFunc("GET /api/v1/reservations/user/{userId}", reservationHandler.GetReservationsByUserID)
+	mux.HandleFunc("GET /api/v1/reservations/flight/{flightId}", reservationHandler.GetReservationsByFlightID)
+
+	mux.HandleFunc("DELETE /api/v1/reservations/{id}/user/{userId}", reservationHandler.CancelReservation)
 }
