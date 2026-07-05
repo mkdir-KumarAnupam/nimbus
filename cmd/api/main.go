@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"log"
 	"net/http"
 	"time"
@@ -35,6 +36,8 @@ func main() {
 
 	defer sqlDB.Close()
 
+	gormUOW := postgres.NewGormUnitOfWork(db)
+
 	cfg, err := config.Load()
 	if err != nil {
 		log.Fatal(err)
@@ -50,6 +53,9 @@ func main() {
 		cfg.JWTSecret,
 		15*time.Minute,
 	)
+
+	ctx := context.Background()
+
 	userRepo := postgres.NewUserRepository(db)
 	userService := service.NewUserService(userRepo, jwtService)
 	userHandler := handlers.NewUserHandler(userService)
@@ -76,8 +82,10 @@ func main() {
 	flightSeatHandler := handlers.NewFlightSeatHandler(flightSeatService)
 
 	reservationRepo := postgres.NewReservationRepository(db)
-	reservationService := service.NewReservationService(reservationRepo, flightRepo, flightSeatRepo, userRepo, redisClient)
+	reservationService := service.NewReservationService(reservationRepo, flightRepo, flightSeatRepo, userRepo, redisClient, gormUOW)
 	reservationHandler := handlers.NewReservationHandler(reservationService)
+
+	go reservationService.StartExpirationWorker(ctx)
 
 	mux := newMux(userHandler, authMiddleware, airportHandler, aircraftHandler, flightHandler, seatHandler, flightSeatHandler, reservationHandler)
 
@@ -162,8 +170,6 @@ func registerFlightSeatRoutes(mux *http.ServeMux, flightSeatHandler *handlers.Fl
 
 func registerReservationRoutes(mux *http.ServeMux, reservationHandler *handlers.ReservationHandler) {
 	mux.HandleFunc("GET /api/v1/reservations", reservationHandler.ListReservations)
-
-	mux.HandleFunc("POST /api/v1/reservations", reservationHandler.CreateReservation)
 
 	// Reserve a specific flight seat
 	mux.HandleFunc("POST /api/v1/reservations/reserve", reservationHandler.ReserveSeat)

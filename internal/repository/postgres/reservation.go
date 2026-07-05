@@ -3,6 +3,7 @@ package postgres
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/mkdir-KumarAnupam/airline-booking/internal/domain"
 	"github.com/mkdir-KumarAnupam/airline-booking/internal/errs"
@@ -15,6 +16,12 @@ type ReservationRepository struct {
 
 func NewReservationRepository(db *gorm.DB) *ReservationRepository {
 	return &ReservationRepository{db: db}
+}
+
+func (repo *ReservationRepository) WithTx(tx *gorm.DB) *ReservationRepository {
+	return &ReservationRepository{
+		db: tx,
+	}
 }
 
 func (repo *ReservationRepository) CreateReservation(ctx context.Context, reservation *domain.Reservation) error {
@@ -120,4 +127,16 @@ func (repo *ReservationRepository) DeleteReservation(ctx context.Context, id str
 	}
 
 	return nil
+}
+
+func (repo *ReservationRepository) GetExpiredPendingReservations(ctx context.Context, now time.Time) ([]*domain.Reservation, error) {
+	var reservations []*domain.Reservation
+
+	err := repo.db.WithContext(ctx).Where("status = ? AND expires_at <= ?", domain.ReservationPending, now).Find(&reservations).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return reservations, nil
+
 }

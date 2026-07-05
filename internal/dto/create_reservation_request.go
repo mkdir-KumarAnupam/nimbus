@@ -13,14 +13,12 @@ type ReserveSeatRequest struct {
 }
 
 type ReservationResponse struct {
-	ID             string `json:"id"`
-	ReservationRef string `json:"reservation_ref"`
-
-	UserID   string `json:"user_id"`
-	FlightID string `json:"flight_id"`
-
-	Status string `json:"status"`
-
-	CreatedAt time.Time `json:"created_at"`
-	ExpiresAt time.Time `json:"expires_at"`
+	ID             string    `json:"id"`
+	ReservationRef string    `json:"reservationRef"`
+	UserID         string    `json:"userId"`
+	FlightID       string    `json:"flightId"`
+	FlightSeatID   string    `json:"flightSeatId"`
+	Status         string    `json:"status"`
+	CreatedAt      time.Time `json:"createdAt"`
+	ExpiresAt      time.Time `json:"expiresAt"`
 }

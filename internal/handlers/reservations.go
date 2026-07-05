@@ -35,22 +35,6 @@ func (h *ReservationHandler) ReserveSeat(w http.ResponseWriter, r *http.Request)
 	w.WriteHeader(http.StatusCreated)
 }
 
-func (h *ReservationHandler) CreateReservation(w http.ResponseWriter, r *http.Request) {
-	var req dto.CreateReservationRequest
-
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	if err := h.reservationService.CreateReservation(r.Context(), &req); err != nil {
-		writeReservationError(w, err)
-		return
-	}
-
-	w.WriteHeader(http.StatusCreated)
-}
-
 func (h *ReservationHandler) GetReservationByID(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 

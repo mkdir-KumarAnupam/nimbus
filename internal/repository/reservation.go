@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"time"
 
 	"github.com/mkdir-KumarAnupam/airline-booking/internal/domain"
 )
@@ -15,4 +16,5 @@ type ReservationRepository interface {
 	ListReservations(ctx context.Context) ([]*domain.Reservation, error)
 	UpdateReservation(ctx context.Context, reservation *domain.Reservation) error
 	DeleteReservation(ctx context.Context, id string) error
+	GetExpiredPendingReservations(ctx context.Context, now time.Time) ([]*domain.Reservation, error)
 }

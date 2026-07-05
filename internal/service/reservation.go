@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"log"
 	"time"
 
 	"github.com/google/uuid"
@@ -9,6 +10,7 @@ import (
 	"github.com/mkdir-KumarAnupam/airline-booking/internal/dto"
 	"github.com/mkdir-KumarAnupam/airline-booking/internal/errs"
 	"github.com/mkdir-KumarAnupam/airline-booking/internal/repository"
+	"github.com/mkdir-KumarAnupam/airline-booking/internal/uow"
 	"github.com/mkdir-KumarAnupam/airline-booking/internal/utils"
 	"github.com/mkdir-KumarAnupam/airline-booking/internal/validation"
 	"github.com/redis/go-redis/v9"
@@ -20,6 +22,7 @@ type ReservationService struct {
 	flightSeatRepository  repository.FlightSeatRepository
 	userRepository        repository.UserRepository
 
+	uow   uow.UnitOfWork
 	redis *redis.Client
 }
 
@@ -35,6 +38,7 @@ func NewReservationService(
 	flightSeatRepo repository.FlightSeatRepository,
 	userRepo repository.UserRepository,
 	redis *redis.Client,
+	uow uow.UnitOfWork,
 ) *ReservationService {
 	return &ReservationService{
 		reservationRepository: reservationRepo,
@@ -42,49 +46,8 @@ func NewReservationService(
 		flightSeatRepository:  flightSeatRepo,
 		userRepository:        userRepo,
 		redis:                 redis,
+		uow:                   uow,
 	}
-}
-
-func (s *ReservationService) CreateReservation(ctx context.Context, reservation *dto.CreateReservationRequest) error {
-	if err := validation.ValidateCreateReservationRequest(reservation); err != nil {
-		return err
-	}
-
-	if err := s.validateReservationUserID(ctx, reservation.UserID); err != nil {
-		return err
-	}
-
-	flight, err := s.validateReservationFlightID(ctx, reservation.FlightID)
-	if err != nil {
-		return err
-	}
-
-	now := time.Now().UTC()
-
-	if flight.Status != domain.FlightScheduled {
-		return errs.ErrFlightStatusInvalid
-	}
-
-	if !flight.DepartureTime.After(now) {
-		return errs.ErrFlightHasDeparted
-	}
-
-	ref, err := s.generateUniqueReservationRef(ctx)
-	if err != nil {
-		return err
-	}
-
-	reserve := &domain.Reservation{
-		ID:             uuid.NewString(),
-		ReservationRef: ref,
-		UserID:         reservation.UserID,
-		FlightID:       reservation.FlightID,
-		Status:         domain.ReservationPending,
-		CreatedAt:      now,
-		ExpiresAt:      now.Add(reservationHoldDuration),
-	}
-
-	return s.reservationRepository.CreateReservation(ctx, reserve)
 }
 
 func (s *ReservationService) ReserveSeat(ctx context.Context, reservation *dto.ReserveSeatRequest) error {
@@ -162,21 +125,27 @@ func (s *ReservationService) ReserveSeat(ctx context.Context, reservation *dto.R
 		ReservationRef: ref,
 		UserID:         reservation.UserID,
 		FlightID:       flightSeat.FlightID,
+		FlightSeatID:   flightSeat.ID,
 		Status:         domain.ReservationPending,
 		CreatedAt:      now,
 		ExpiresAt:      now.Add(reservationHoldDuration),
 	}
 
-	err = s.reservationRepository.CreateReservation(ctx, reserve)
+	err = s.uow.Do(ctx, func(repos uow.Repositories) error {
+		if err := repos.Reservation.CreateReservation(ctx, reserve); err != nil {
+			return err
+		}
+
+		flightSeat.Status = domain.SeatHeld
+
+		if err := repos.FlightSeat.UpdateFlightSeat(ctx, flightSeat); err != nil {
+			return err
+		}
+
+		return nil
+	})
 
 	if err != nil {
-		return err
-	}
-
-	// Update FlightSeat -> Held
-	flightSeat.Status = domain.SeatHeld
-
-	if err = s.flightSeatRepository.UpdateFlightSeat(ctx, flightSeat); err != nil {
 		return err
 	}
 
@@ -250,6 +219,57 @@ func (s *ReservationService) GetReservationByID(ctx context.Context, id string) 
 	}
 
 	return resvToResponse(reservation), nil
+}
+
+func (s *ReservationService) ExpireReservations(ctx context.Context) error {
+	now := time.Now().UTC()
+	expiredReservations, err := s.reservationRepository.GetExpiredPendingReservations(ctx, now)
+	if err != nil {
+		return err
+	}
+
+	for _, reservation := range expiredReservations {
+		flightSeat, err := s.flightSeatRepository.GetByID(ctx, reservation.FlightSeatID)
+
+		if err != nil {
+			log.Println(err)
+			continue
+		}
+
+		//Fallback
+		if flightSeat == nil {
+			log.Println(errs.ErrFlightSeatNotFound)
+			continue
+		}
+
+		errTx := s.uow.Do(ctx, func(repos uow.Repositories) error {
+			reservation.Status = domain.ReservationExpired
+			if err := repos.Reservation.UpdateReservation(ctx, reservation); err != nil {
+				return err
+			}
+
+			flightSeat.Status = domain.SeatAvailable
+			if err := repos.FlightSeat.UpdateFlightSeat(ctx, flightSeat); err != nil {
+				return err
+			}
+
+			//Delete redis hold?
+
+			return nil
+		})
+		if errTx != nil {
+			log.Println(errTx)
+			continue
+		}
+
+		log.Printf(
+			"Expired reservation %s and released seat %s",
+			reservation.ReservationRef,
+			flightSeat.ID,
+		)
+	}
+
+	return nil
 }
 
 func (s *ReservationService) GetReservationByUserID(ctx context.Context, id string) ([]*dto.ReservationResponse, error) {
@@ -331,4 +351,24 @@ func (s *ReservationService) CancelReservation(ctx context.Context, reservationI
 	reservation.Status = domain.ReservationCancelled
 	return s.reservationRepository.UpdateReservation(ctx, reservation)
 
+}
+
+func (s *ReservationService) StartExpirationWorker(ctx context.Context) {
+	ticker := time.NewTicker(time.Minute)
+	defer ticker.Stop()
+
+	log.Println("Reservation expiration worker started")
+
+	for {
+		select {
+		case <-ctx.Done():
+			log.Println("Reservation expiration worker stopped")
+			return
+
+		case <-ticker.C:
+			if err := s.ExpireReservations(ctx); err != nil {
+				log.Println("reservation expiration worker:", err)
+			}
+		}
+	}
 }

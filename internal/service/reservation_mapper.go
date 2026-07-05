@@ -11,6 +11,7 @@ func resvToResponse(reservation *domain.Reservation) *dto.ReservationResponse {
 		ReservationRef: reservation.ReservationRef,
 		UserID:         reservation.UserID,
 		FlightID:       reservation.FlightID,
+		FlightSeatID:   reservation.FlightSeatID,
 		Status:         string(reservation.Status),
 		CreatedAt:      reservation.CreatedAt,
 		ExpiresAt:      reservation.ExpiresAt,
