@@ -53,4 +53,10 @@ var (
 
 	//Transaction errors
 	ErrTransactionReservationFailed = errors.New("transaction while confirming reservation failed")
+
+	//Request errors
+	ErrInvalidRequest = errors.New("invalid request")
+
+	//Payment errors
+	ErrPaymentAlreadyExists = errors.New("payment already exists")
 )

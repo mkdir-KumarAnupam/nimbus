@@ -13,6 +13,10 @@ type Config struct {
 	RedisDB       int
 
 	JWTSecret string
+
+	RazorpayKeyID         string
+	RazorpayKeySecret     string
+	RazorpayWebhookSecret string
 }
 
 func Load() (*Config, error) {
@@ -24,10 +28,13 @@ func Load() (*Config, error) {
 	log.Println("Connected to Redis")
 
 	cfg := &Config{
-		RedisAddr:     os.Getenv("REDIS_ADDR"),
-		RedisPassword: os.Getenv("REDIS_PASSWORD"),
-		RedisDB:       redisDB,
-		JWTSecret:     os.Getenv("JWT_SECRET"),
+		RedisAddr:             os.Getenv("REDIS_ADDR"),
+		RedisPassword:         os.Getenv("REDIS_PASSWORD"),
+		RedisDB:               redisDB,
+		JWTSecret:             os.Getenv("JWT_SECRET"),
+		RazorpayKeyID:         os.Getenv("RAZORPAY_KEY_ID"),
+		RazorpayKeySecret:     os.Getenv("RAZORPAY_KEY_SECRET"),
+		RazorpayWebhookSecret: os.Getenv("RAZORPAY_WEBHOOK_SECRET"),
 	}
 
 	if cfg.RedisAddr == "" {
@@ -36,6 +43,14 @@ func Load() (*Config, error) {
 
 	if cfg.JWTSecret == "" {
 		return nil, fmt.Errorf("JWT_SECRET is required")
+	}
+
+	if cfg.RazorpayKeyID == "" {
+		return nil, fmt.Errorf("RAZORPAY_KEY_ID is required")
+	}
+
+	if cfg.RazorpayKeySecret == "" {
+		return nil, fmt.Errorf("RAZORPAY_KEY_SECRET is required")
 	}
 
 	return cfg, nil

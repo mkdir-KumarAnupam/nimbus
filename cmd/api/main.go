@@ -12,6 +12,7 @@ import (
 	"github.com/mkdir-KumarAnupam/airline-booking/internal/database"
 	"github.com/mkdir-KumarAnupam/airline-booking/internal/handlers"
 	"github.com/mkdir-KumarAnupam/airline-booking/internal/middleware"
+	"github.com/mkdir-KumarAnupam/airline-booking/internal/payment/razorpay"
 	"github.com/mkdir-KumarAnupam/airline-booking/internal/repository/postgres"
 	"github.com/mkdir-KumarAnupam/airline-booking/internal/service"
 )
@@ -85,9 +86,25 @@ func main() {
 	reservationService := service.NewReservationService(reservationRepo, flightRepo, flightSeatRepo, userRepo, redisClient, gormUOW)
 	reservationHandler := handlers.NewReservationHandler(reservationService)
 
+	paymentRepo := postgres.NewPaymentRepository(db)
+	gateway := razorpay.NewGateway(
+		cfg.RazorpayKeyID,
+		cfg.RazorpayKeySecret,
+	)
+
+	paymentService := service.NewPaymentService(
+		paymentRepo,
+		reservationRepo,
+		flightSeatRepo,
+		gateway,
+		cfg.RazorpayKeyID,
+	)
+
+	paymentHandler := handlers.NewPaymentHandler(paymentService)
+
 	go reservationService.StartExpirationWorker(ctx)
 
-	mux := newMux(userHandler, authMiddleware, airportHandler, aircraftHandler, flightHandler, seatHandler, flightSeatHandler, reservationHandler)
+	mux := newMux(userHandler, authMiddleware, airportHandler, aircraftHandler, flightHandler, seatHandler, flightSeatHandler, reservationHandler, paymentHandler)
 
 	log.Println("Listening on port 8088")
 	if err := http.ListenAndServe(":8088", mux); err != nil {
@@ -104,6 +121,7 @@ func newMux(
 	seatHandler *handlers.SeatHandler,
 	flightSeatHandler *handlers.FlightSeatHandler,
 	reservationHandler *handlers.ReservationHandler,
+	paymentHandler *handlers.PaymentHandler,
 ) *http.ServeMux {
 	mux := http.NewServeMux()
 
@@ -119,7 +137,7 @@ func newMux(
 	registerSeatRoutes(mux, seatHandler)
 	registerFlightSeatRoutes(mux, flightSeatHandler)
 	registerReservationRoutes(mux, reservationHandler)
-
+	registerPaymentRoutes(mux, paymentHandler)
 	return mux
 }
 
@@ -179,4 +197,8 @@ func registerReservationRoutes(mux *http.ServeMux, reservationHandler *handlers.
 	mux.HandleFunc("GET /api/v1/reservations/{id}", reservationHandler.GetReservationByID)
 	mux.HandleFunc("GET /api/v1/reservations/user/{userId}", reservationHandler.GetReservationsByUserID)
 	mux.HandleFunc("GET /api/v1/reservations/flight/{flightId}", reservationHandler.GetReservationsByFlightID)
+}
+
+func registerPaymentRoutes(mux *http.ServeMux, paymentHandler *handlers.PaymentHandler) {
+	mux.HandleFunc("POST /api/v1/payments", paymentHandler.CreatePayment)
 }
