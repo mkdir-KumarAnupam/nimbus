@@ -2,6 +2,8 @@ package handlers
 
 import (
 	"encoding/json"
+	"io"
+	"log"
 	"net/http"
 
 	"github.com/mkdir-KumarAnupam/airline-booking/internal/errs"
@@ -55,4 +57,28 @@ func writePaymentError(w http.ResponseWriter, err error) {
 	default:
 		http.Error(w, err.Error(), http.StatusBadRequest)
 	}
+}
+
+func (h *PaymentHandler) Webhook(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, "failed to read request body", http.StatusBadRequest)
+		return
+	}
+
+	signature := r.Header.Get("X-Razorpay-Signature")
+	if signature == "" {
+		http.Error(w, "missing razorpay signature", http.StatusUnauthorized)
+		return
+	}
+
+	if err := h.paymentService.HandleWebhook(ctx, body, signature); err != nil {
+		log.Println("webhook:", err)
+		http.Error(w, "invalid webhook", http.StatusBadRequest)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
 }

@@ -6,6 +6,8 @@ import "github.com/mkdir-KumarAnupam/airline-booking/internal/repository"
 type Repositories struct {
 	Reservation repository.ReservationRepository
 	FlightSeat  repository.FlightSeatRepository
+	Ticket      repository.TicketRepository
+	Flight      repository.FlightRepository
 }
 
 type UnitOfWork interface {

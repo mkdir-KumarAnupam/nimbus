@@ -86,16 +86,31 @@ func main() {
 	reservationService := service.NewReservationService(reservationRepo, flightRepo, flightSeatRepo, userRepo, redisClient, gormUOW)
 	reservationHandler := handlers.NewReservationHandler(reservationService)
 
+	ticketRepo := postgres.NewTicketRepository(db)
+	ticketService := service.NewTicketService(ticketRepo)
+	ticketHandler := handlers.NewTicketHandler(ticketService)
+
+	bookingWorkflowService := service.NewBookingWorkflowService(
+		gormUOW,
+		reservationRepo,
+		flightSeatRepo,
+		flightRepo,
+		reservationService,
+		ticketService,
+	)
+
 	paymentRepo := postgres.NewPaymentRepository(db)
 	gateway := razorpay.NewGateway(
 		cfg.RazorpayKeyID,
 		cfg.RazorpayKeySecret,
+		cfg.RazorpayWebhookSecret,
 	)
 
 	paymentService := service.NewPaymentService(
 		paymentRepo,
 		reservationRepo,
 		flightSeatRepo,
+		bookingWorkflowService,
 		gateway,
 		cfg.RazorpayKeyID,
 	)
@@ -104,7 +119,7 @@ func main() {
 
 	go reservationService.StartExpirationWorker(ctx)
 
-	mux := newMux(userHandler, authMiddleware, airportHandler, aircraftHandler, flightHandler, seatHandler, flightSeatHandler, reservationHandler, paymentHandler)
+	mux := newMux(userHandler, authMiddleware, airportHandler, aircraftHandler, flightHandler, seatHandler, flightSeatHandler, reservationHandler, paymentHandler, ticketHandler)
 
 	log.Println("Listening on port 8088")
 	if err := http.ListenAndServe(":8088", mux); err != nil {
@@ -122,6 +137,7 @@ func newMux(
 	flightSeatHandler *handlers.FlightSeatHandler,
 	reservationHandler *handlers.ReservationHandler,
 	paymentHandler *handlers.PaymentHandler,
+	ticketHandler *handlers.TicketHandler,
 ) *http.ServeMux {
 	mux := http.NewServeMux()
 
@@ -138,6 +154,7 @@ func newMux(
 	registerFlightSeatRoutes(mux, flightSeatHandler)
 	registerReservationRoutes(mux, reservationHandler)
 	registerPaymentRoutes(mux, paymentHandler)
+	registerTicketRoutes(mux, ticketHandler)
 	return mux
 }
 
@@ -201,4 +218,13 @@ func registerReservationRoutes(mux *http.ServeMux, reservationHandler *handlers.
 
 func registerPaymentRoutes(mux *http.ServeMux, paymentHandler *handlers.PaymentHandler) {
 	mux.HandleFunc("POST /api/v1/payments", paymentHandler.CreatePayment)
+	mux.HandleFunc("POST /api/v1/payments/webhook", paymentHandler.Webhook)
+}
+
+func registerTicketRoutes(mux *http.ServeMux, ticketHandler *handlers.TicketHandler) {
+	mux.HandleFunc("GET /api/v1/tickets", ticketHandler.ListTickets)
+	mux.HandleFunc("GET /api/v1/tickets/{id}", ticketHandler.GetTicketByID)
+	mux.HandleFunc("GET /api/v1/tickets/reservation/{reservationId}", ticketHandler.GetTicketByReservationID)
+	mux.HandleFunc("GET /api/v1/tickets/number/{ticketNumber}", ticketHandler.GetTicketByTicketNumber)
+	mux.HandleFunc("GET /api/v1/tickets/user/{userId}", ticketHandler.GetTicketsByUserID)
 }

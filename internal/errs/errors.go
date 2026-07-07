@@ -23,6 +23,7 @@ var (
 	ErrReservationReferenceGenerationFailed = errors.New("failed to generate unique reservation reference")
 	ErrReservationCannotBeMade              = errors.New("failed to make reservation")
 	ErrInvalidTransactionState              = errors.New("invalid transaction state")
+	ErrReservationNotConfirmed              = errors.New("reservation is not confirmed")
 
 	// Flight errors
 	ErrFlightNotFound        = errors.New("flight not found")
@@ -57,6 +58,27 @@ var (
 	//Request errors
 	ErrInvalidRequest = errors.New("invalid request")
 
+	//Webhook errors
+	ErrInvalidWebhookSignature = errors.New("invalid webhook signature")
+	ErrInvalidWebhookEvent     = errors.New("invalid event")
+
 	//Payment errors
-	ErrPaymentAlreadyExists = errors.New("payment already exists")
+	ErrPaymentNotFound         = errors.New("payment not found")
+	ErrPaymentAmountMismatch   = errors.New("payment amount mismatch")
+	ErrPaymentCurrencyMismatch = errors.New("payment currency mismatch")
+	ErrPaymentOrderMismatch    = errors.New("payment order mismatch")
+	ErrPaymentNotCaptured      = errors.New("payment not captured")
+	ErrPaymentOrderIDMissing   = errors.New("payment order id missing")
+	ErrPaymentNotFailed        = errors.New("payment not failed")
+	ErrPaymentAlreadyExists    = errors.New("payment already exists")
+
+	//Ticket errors
+	ErrTicketAlreadyExists                = errors.New("ticket already exists")
+	ErrDuplicateTicket                    = errors.New("duplicate ticket")
+	ErrUnableToGenerateUniqueTicketNumber = errors.New("unable to generate unique ticket number")
+	ErrTicketNotFound                     = errors.New("ticket not found")
+
+	ErrTicketIDRequired     = errors.New("ticket id is required")
+	ErrTicketIDInvalid      = errors.New("ticket id is invalid")
+	ErrTicketNumberRequired = errors.New("ticket number is required")
 )

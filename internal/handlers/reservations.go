@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 
@@ -17,6 +18,10 @@ func NewReservationHandler(reservationService *service.ReservationService) *Rese
 	return &ReservationHandler{
 		reservationService: reservationService,
 	}
+}
+
+type ReservationConfirmer interface {
+	ConfirmReservation(ctx context.Context, reservationID string) error
 }
 
 func (h *ReservationHandler) ReserveSeat(w http.ResponseWriter, r *http.Request) {

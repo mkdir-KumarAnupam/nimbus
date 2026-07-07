@@ -37,6 +37,8 @@ func (u *GormUnitOfWork) Do(
 	repos := uow.Repositories{
 		Reservation: NewReservationRepository(tx),
 		FlightSeat:  NewFlightSeatRepository(tx),
+		Ticket:      NewTicketRepository(tx),
+		Flight:      NewFlightRepository(tx),
 	}
 
 	if err := fn(repos); err != nil {

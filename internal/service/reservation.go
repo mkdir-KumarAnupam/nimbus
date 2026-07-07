@@ -26,6 +26,13 @@ type ReservationService struct {
 	redis *redis.Client
 }
 
+type BookingConfirmer interface {
+	ConfirmBooking(
+		ctx context.Context,
+		reservationID string,
+	) error
+}
+
 const (
 	reservationReferenceLength = 6
 	maxReferenceAttempts       = 10
@@ -451,18 +458,14 @@ func (s *ReservationService) ConfirmReservation(ctx context.Context, reservation
 	redisKey := utils.GenerateSeatHoldKey(reservation.FlightSeatID)
 
 	txErr := s.uow.Do(ctx, func(repos uow.Repositories) error {
-
-		seat.Status = domain.SeatBooked
-		reservation.Status = domain.ReservationConfirmed
-		if err := repos.Reservation.UpdateReservation(ctx, reservation); err != nil {
-			return err
-		}
-		if err := repos.FlightSeat.UpdateFlightSeat(ctx, seat); err != nil {
-			return err
-		}
-
-		return nil
+		return s.confirmReservationTx(
+			ctx,
+			repos,
+			reservation,
+			seat,
+		)
 	})
+
 	if txErr != nil {
 		return txErr
 	}
@@ -488,4 +491,25 @@ func (s *ReservationService) ConfirmReservation(ctx context.Context, reservation
 
 	return nil
 
+}
+
+func (s *ReservationService) confirmReservationTx(
+	ctx context.Context,
+	repos uow.Repositories,
+	reservation *domain.Reservation,
+	seat *domain.FlightSeat,
+) error {
+
+	seat.Status = domain.SeatBooked
+	reservation.Status = domain.ReservationConfirmed
+
+	if err := repos.Reservation.UpdateReservation(ctx, reservation); err != nil {
+		return err
+	}
+
+	if err := repos.FlightSeat.UpdateFlightSeat(ctx, seat); err != nil {
+		return err
+	}
+
+	return nil
 }

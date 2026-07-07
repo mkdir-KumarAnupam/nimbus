@@ -26,11 +26,13 @@ type Payment struct {
 
 	Gateway string `gorm:"type:varchar(50);not null" json:"gateway"`
 
-	GatewayOrderID string `gorm:"type:varchar(255);uniqueIndex" json:"gateway_order_id"`
+	GatewayOrderID *string `gorm:"type:varchar(255);uniqueIndex" json:"gateway_order_id"`
 
-	GatewayPaymentID string `gorm:"type:varchar(255)" json:"gateway_payment_id"`
+	GatewayPaymentID *string `gorm:"type:varchar(255)" json:"gateway_payment_id"`
 
 	Receipt string `gorm:"type:varchar(100);uniqueIndex;not null" json:"receipt"`
+
+	Attempt int `gorm:"not null" json:"attempt"`
 
 	CreatedAt time.Time `gorm:"not null" json:"created_at"`
 
