@@ -20,8 +20,8 @@ type PaymentService struct {
 	paymentRepository     repository.PaymentRepository
 	reservationRepository repository.ReservationRepository
 	flightSeatRepository  repository.FlightSeatRepository
-
-	bookingWorkflow BookingConfirmer
+	refundRepository      repository.RefundRepository
+	bookingWorkflow       BookingWorkflow
 
 	gateway payment.PaymentGateway
 	keyID   string
@@ -34,8 +34,9 @@ func NewPaymentService(
 	p repository.PaymentRepository,
 	r repository.ReservationRepository,
 	f repository.FlightSeatRepository,
-	c BookingConfirmer,
+	c BookingWorkflow,
 	g payment.PaymentGateway,
+	l repository.RefundRepository,
 	keyID string,
 ) *PaymentService {
 	return &PaymentService{
@@ -45,6 +46,7 @@ func NewPaymentService(
 		gateway:               g,
 		keyID:                 keyID,
 		bookingWorkflow:       c,
+		refundRepository:      l,
 	}
 }
 
@@ -141,7 +143,7 @@ func (s *PaymentService) CreatePayment(
 	log.Printf("Razorpay Order ID: %q", order.OrderID)
 	now := time.Now().UTC()
 
-	// Persist payment only after we have a valid GatewayOrderID'
+	// Persist payment only after we have a valid GatewayOrderID
 
 	paymentRecord := &domain.Payment{
 		ID:             uuid.NewString(),
@@ -250,6 +252,7 @@ func (s *PaymentService) handlePaymentCaptured(
 		return err
 	}
 
+	//Triggering the workflow after payment is completed
 	return s.bookingWorkflow.ConfirmBooking(ctx, paymentRecord.ReservationID)
 
 }
@@ -316,7 +319,322 @@ func (s *PaymentService) HandleWebhook(
 	case "payment.failed":
 		return s.handlePaymentFailed(ctx, event)
 
+	case "refund.processed":
+		return s.handleRefundProcessed(
+			ctx,
+			event.Payload.Refund.Entity.ID,
+		)
+
+	case "refund.failed":
+		return s.handleRefundFailed(
+			ctx,
+			event.Payload.Refund.Entity.ID,
+		)
+
 	default:
 		return nil
 	}
+}
+
+func (s *PaymentService) RequestRefund(
+	ctx context.Context,
+	request payment.RequestRefundRequest,
+) (*payment.RequestRefundResponse, error) {
+	if err := validation.ValidateRequestRefundRequest(&request); err != nil {
+		return nil, err
+	}
+
+	paymentRecord, err := s.paymentRepository.GetPaymentByID(
+		ctx,
+		request.PaymentID)
+	if err != nil {
+		return nil, err
+	}
+
+	if paymentRecord == nil {
+		return nil, errs.ErrPaymentNotFound
+	}
+
+	if paymentRecord.GatewayPaymentID == nil {
+		return nil, errs.ErrGatewayPaymentIDMissing
+	}
+
+	if paymentRecord.Status != domain.PaymentSucceeded {
+		return nil, errs.ErrPaymentNotRefundable
+	}
+
+	refundRecord, err := s.refundRepository.GetRefundByPaymentID(
+		ctx,
+		paymentRecord.ID,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	if refundRecord != nil {
+		switch refundRecord.Status {
+
+		case domain.RefundPending:
+			return nil, errs.ErrRefundAlreadyPending
+
+		case domain.RefundSucceeded:
+			return nil, errs.ErrAlreadyRefunded
+
+		case domain.RefundFailed:
+			// allow retry
+			break
+
+		default:
+			return nil, errs.ErrInvalidTransactionState
+		}
+	}
+
+	refundReq := payment.RefundRequest{
+		PaymentID: *paymentRecord.GatewayPaymentID,
+		Amount:    paymentRecord.Amount,
+	}
+
+	gatewayRefund, err := s.gateway.RefundPayment(
+		ctx,
+		refundReq,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	now := time.Now().UTC()
+
+	isNewRefund := refundRecord == nil
+
+	if isNewRefund {
+		refundRecord = &domain.Refund{
+			ID:        uuid.NewString(),
+			PaymentID: paymentRecord.ID,
+			CreatedAt: now,
+		}
+	}
+
+	refundRecord.GatewayRefundID = &gatewayRefund.RefundID
+	refundRecord.Amount = paymentRecord.Amount
+	refundRecord.Currency = paymentRecord.Currency
+	refundRecord.Reason = request.Reason
+	refundRecord.Status = domain.RefundPending
+	refundRecord.UpdatedAt = now
+
+	if isNewRefund {
+		if err := s.refundRepository.CreateRefund(
+			ctx,
+			refundRecord,
+		); err != nil {
+			return nil, err
+		}
+	} else {
+		if err := s.refundRepository.UpdateRefund(
+			ctx,
+			refundRecord,
+		); err != nil {
+			return nil, err
+		}
+	}
+
+	return &payment.RequestRefundResponse{
+		RefundID: refundRecord.ID,
+		Status:   refundRecord.Status,
+	}, nil
+
+}
+
+func (s *PaymentService) verifyGatewayRefund(
+	ctx context.Context,
+	gatewayRefundID string,
+) (*domain.Refund, *payment.RefundDetails, error) {
+
+	// Load the refund from our database
+	refundRecord, err := s.refundRepository.GetRefundByGatewayRefundID(
+		ctx,
+		gatewayRefundID,
+	)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if refundRecord == nil {
+		return nil, nil, errs.ErrRefundNotFound
+	}
+
+	if refundRecord.GatewayRefundID == nil {
+		return nil, nil, errs.ErrGatewayRefundIDMissing
+	}
+
+	// Get the authoritative refund details from Razorpay
+	refundDetails, err := s.gateway.GetRefund(
+		ctx,
+		gatewayRefundID,
+	)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if refundDetails == nil {
+		return nil, nil, errs.ErrRefundNotFound
+	}
+
+	// Verify the refund IDs match
+	if refundDetails.ID != *refundRecord.GatewayRefundID {
+		return nil, nil, errs.ErrRefundIDMismatch
+	}
+
+	// Load payment
+	paymentRecord, err := s.paymentRepository.GetPaymentByID(
+		ctx,
+		refundRecord.PaymentID,
+	)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if paymentRecord == nil {
+		return nil, nil, errs.ErrPaymentNotFound
+	}
+
+	if paymentRecord.GatewayPaymentID == nil {
+		return nil, nil, errs.ErrGatewayPaymentIDMissing
+	}
+
+	// Verify the refund belongs to the expected payment
+	if refundDetails.PaymentID != *paymentRecord.GatewayPaymentID {
+		return nil, nil, errs.ErrPaymentMismatch
+	}
+
+	// Verify the refund amount
+	if refundDetails.Amount != refundRecord.Amount {
+		return nil, nil, errs.ErrRefundAmountMismatch
+	}
+
+	// Verify the refund currency
+	if refundDetails.Currency != refundRecord.Currency {
+		return nil, nil, errs.ErrRefundCurrencyMismatch
+	}
+
+	return refundRecord, refundDetails, nil
+}
+
+func (s *PaymentService) handleRefundProcessed(
+	ctx context.Context,
+	gatewayRefundID string,
+) error {
+
+	// Verify the refund with Razorpay and our database.
+	refundRecord, refundDetails, err := s.verifyGatewayRefund(
+		ctx,
+		gatewayRefundID,
+	)
+	if err != nil {
+		return err
+	}
+
+	// The refund must actually be processed.
+	if refundDetails.Status != "processed" {
+		return errs.ErrRefundNotProcessed
+	}
+
+	// Ensure this is a valid state transition.
+	switch refundRecord.Status {
+
+	case domain.RefundPending:
+		// valid transition
+
+	case domain.RefundSucceeded:
+		// Webhooks are retried by Razorpay.
+		// We've already processed this refund.
+		return nil
+
+	default:
+		return errs.ErrInvalidTransactionState
+	}
+
+	// Load the associated payment.
+	paymentRecord, err := s.paymentRepository.GetPaymentByID(
+		ctx,
+		refundRecord.PaymentID,
+	)
+	if err != nil {
+		return err
+	}
+
+	if paymentRecord == nil {
+		return errs.ErrPaymentNotFound
+	}
+
+	//Cancel the booking
+	err = s.bookingWorkflow.CancelBooking(
+		ctx,
+		paymentRecord.ReservationID,
+	)
+	if err != nil {
+		return err
+	}
+
+	// Mark the refund as completed.
+	now := time.Now().UTC()
+
+	refundRecord.Status = domain.RefundSucceeded
+	refundRecord.UpdatedAt = now
+
+	if err := s.refundRepository.UpdateRefund(
+		ctx,
+		refundRecord,
+	); err != nil {
+		return err
+	}
+
+	// Mark the payment as refunded.
+	paymentRecord.Status = domain.PaymentRefunded
+	paymentRecord.UpdatedAt = now
+
+	if err := s.paymentRepository.UpdatePayment(
+		ctx,
+		paymentRecord,
+	); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *PaymentService) handleRefundFailed(
+	ctx context.Context,
+	gatewayRefundID string,
+) error {
+
+	refundRecord, refundDetails, err := s.verifyGatewayRefund(
+		ctx,
+		gatewayRefundID,
+	)
+	if err != nil {
+		return err
+	}
+
+	if refundDetails.Status != "failed" {
+		return errs.ErrRefundNotFailed
+	}
+
+	switch refundRecord.Status {
+
+	case domain.RefundPending:
+		// valid
+
+	case domain.RefundFailed:
+		return nil
+
+	default:
+		return errs.ErrInvalidTransactionState
+	}
+
+	refundRecord.Status = domain.RefundFailed
+	refundRecord.UpdatedAt = time.Now().UTC()
+
+	return s.refundRepository.UpdateRefund(
+		ctx,
+		refundRecord,
+	)
 }

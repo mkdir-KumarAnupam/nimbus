@@ -12,5 +12,7 @@ type PaymentGateway interface {
 
 	GetPayment(ctx context.Context, paymentID string) (*PaymentDetails, error)
 
-	//Refund(ctx context.Context, paymentID string, amount int64) error
+	GetRefund(ctx context.Context, refundID string) (*RefundDetails, error)
+
+	RefundPayment(ctx context.Context, req RefundRequest) (*RefundResponse, error)
 }

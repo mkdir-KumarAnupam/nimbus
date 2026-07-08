@@ -106,12 +106,15 @@ func main() {
 		cfg.RazorpayWebhookSecret,
 	)
 
+	refundRepo := postgres.NewRefundRepository(db)
+
 	paymentService := service.NewPaymentService(
 		paymentRepo,
 		reservationRepo,
 		flightSeatRepo,
 		bookingWorkflowService,
 		gateway,
+		refundRepo,
 		cfg.RazorpayKeyID,
 	)
 
@@ -119,10 +122,23 @@ func main() {
 
 	go reservationService.StartExpirationWorker(ctx)
 
-	mux := newMux(userHandler, authMiddleware, airportHandler, aircraftHandler, flightHandler, seatHandler, flightSeatHandler, reservationHandler, paymentHandler, ticketHandler)
+	mux := newMux(
+		userHandler,
+		authMiddleware,
+		airportHandler,
+		aircraftHandler,
+		flightHandler,
+		seatHandler,
+		flightSeatHandler,
+		reservationHandler,
+		paymentHandler,
+		ticketHandler,
+	)
+
+	handler := middleware.CORS(mux)
 
 	log.Println("Listening on port 8088")
-	if err := http.ListenAndServe(":8088", mux); err != nil {
+	if err := http.ListenAndServe(":8088", handler); err != nil {
 		log.Fatal(err)
 	}
 }
@@ -216,9 +232,24 @@ func registerReservationRoutes(mux *http.ServeMux, reservationHandler *handlers.
 	mux.HandleFunc("GET /api/v1/reservations/flight/{flightId}", reservationHandler.GetReservationsByFlightID)
 }
 
-func registerPaymentRoutes(mux *http.ServeMux, paymentHandler *handlers.PaymentHandler) {
-	mux.HandleFunc("POST /api/v1/payments", paymentHandler.CreatePayment)
-	mux.HandleFunc("POST /api/v1/payments/webhook", paymentHandler.Webhook)
+func registerPaymentRoutes(
+	mux *http.ServeMux,
+	paymentHandler *handlers.PaymentHandler,
+) {
+	mux.HandleFunc(
+		"POST /api/v1/payments",
+		paymentHandler.CreatePayment,
+	)
+
+	mux.HandleFunc(
+		"POST /api/v1/payments/refund",
+		paymentHandler.RequestRefund,
+	)
+
+	mux.HandleFunc(
+		"POST /api/v1/payments/webhook",
+		paymentHandler.Webhook,
+	)
 }
 
 func registerTicketRoutes(mux *http.ServeMux, ticketHandler *handlers.TicketHandler) {

@@ -26,13 +26,6 @@ type ReservationService struct {
 	redis *redis.Client
 }
 
-type BookingConfirmer interface {
-	ConfirmBooking(
-		ctx context.Context,
-		reservationID string,
-	) error
-}
-
 const (
 	reservationReferenceLength = 6
 	maxReferenceAttempts       = 10
@@ -454,7 +447,7 @@ func (s *ReservationService) ConfirmReservation(ctx context.Context, reservation
 	if seat.Status != domain.SeatHeld {
 		return errs.ErrReservationCannotBeMade
 	}
-	//Why check if lock exists if the seat status is on hold no point
+	//Why check if lock exists is the seat status is on hold no point
 	redisKey := utils.GenerateSeatHoldKey(reservation.FlightSeatID)
 
 	txErr := s.uow.Do(ctx, func(repos uow.Repositories) error {
@@ -508,6 +501,33 @@ func (s *ReservationService) confirmReservationTx(
 	}
 
 	if err := repos.FlightSeat.UpdateFlightSeat(ctx, seat); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *ReservationService) cancelReservationTx(
+	ctx context.Context,
+	repos uow.Repositories,
+	reservation *domain.Reservation,
+	seat *domain.FlightSeat,
+) error {
+
+	reservation.Status = domain.ReservationCancelled
+	seat.Status = domain.SeatAvailable
+
+	if err := repos.Reservation.UpdateReservation(
+		ctx,
+		reservation,
+	); err != nil {
+		return err
+	}
+
+	if err := repos.FlightSeat.UpdateFlightSeat(
+		ctx,
+		seat,
+	); err != nil {
 		return err
 	}
 

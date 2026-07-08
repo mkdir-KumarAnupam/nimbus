@@ -47,10 +47,15 @@ func writePaymentError(w http.ResponseWriter, err error) {
 	switch err {
 
 	case errs.ErrReservationNotFound,
-		errs.ErrFlightSeatNotFound:
+		errs.ErrFlightSeatNotFound,
+		errs.ErrPaymentNotFound,
+		errs.ErrRefundNotFound:
 		http.Error(w, err.Error(), http.StatusNotFound)
 
 	case errs.ErrPaymentAlreadyExists,
+		errs.ErrPaymentNotRefundable,
+		errs.ErrRefundAlreadyPending,
+		errs.ErrAlreadyRefunded,
 		errs.ErrInvalidTransactionState:
 		http.Error(w, err.Error(), http.StatusConflict)
 
@@ -81,4 +86,36 @@ func (h *PaymentHandler) Webhook(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
+}
+
+func (h *PaymentHandler) RequestRefund(
+	w http.ResponseWriter,
+	r *http.Request,
+) {
+	var req payment.RequestRefundRequest
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	response, err := h.paymentService.RequestRefund(
+		r.Context(),
+		req,
+	)
+	if err != nil {
+		writePaymentError(w, err)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusAccepted)
+
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		http.Error(
+			w,
+			err.Error(),
+			http.StatusInternalServerError,
+		)
+	}
 }

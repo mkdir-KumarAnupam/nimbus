@@ -196,3 +196,49 @@ func (s *TicketService) GetTicketByTicketNumber(
 
 	return ticketToResponse(ticket), nil
 }
+
+func (s *TicketService) CancelTicket(
+	ctx context.Context,
+	repo repository.TicketRepository,
+	reservationID string,
+) error {
+
+	if err := validation.ValidateReservationID(reservationID); err != nil {
+		return err
+	}
+
+	ticket, err := repo.GetTicketByReservationID(
+		ctx,
+		reservationID,
+	)
+	if err != nil {
+		return err
+	}
+
+	if ticket == nil {
+		return errs.ErrTicketNotFound
+	}
+
+	switch ticket.Status {
+
+	case domain.TicketIssued:
+		// valid transition
+
+	case domain.TicketCancelled:
+		// Already cancelled (idempotent)
+		return nil
+
+	default:
+		return errs.ErrInvalidTransactionState
+	}
+
+	now := time.Now().UTC()
+
+	ticket.Status = domain.TicketCancelled
+	ticket.UpdatedAt = now
+
+	return repo.UpdateTicket(
+		ctx,
+		ticket,
+	)
+}
