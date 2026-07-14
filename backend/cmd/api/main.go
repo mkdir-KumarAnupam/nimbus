@@ -235,14 +235,15 @@ func newMux(
 			http.HandlerFunc(userHandler.Login),
 		),
 	)
+
 	registerAirportRoutes(mux, airportHandler)
 	registerAircraftRoutes(mux, aircraftHandler)
 	registerFlightRoutes(mux, flightHandler)
 	registerSeatRoutes(mux, seatHandler)
 	registerFlightSeatRoutes(mux, flightSeatHandler)
-	registerReservationRoutes(mux, reservationHandler)
+	registerReservationRoutes(mux, reservationHandler, rateLimitMiddleware, authMiddleware)
 	registerPassengerRoutes(mux, passengerHandler)
-	registerPaymentRoutes(mux, paymentHandler)
+	registerPaymentRoutes(mux, paymentHandler, rateLimitMiddleware, authMiddleware)
 	registerTicketRoutes(mux, ticketHandler)
 	registerEmailRoutes(mux, emailHandler)
 	return mux
@@ -296,9 +297,20 @@ func registerFlightSeatRoutes(mux *http.ServeMux, flightSeatHandler *handlers.Fl
 	)
 }
 
-func registerReservationRoutes(mux *http.ServeMux, reservationHandler *handlers.ReservationHandler) {
+func registerReservationRoutes(mux *http.ServeMux, reservationHandler *handlers.ReservationHandler, ratelimitMiddleware *middleware.RateLimitMiddleware, authMiddlware *middleware.AuthMiddleware) {
 	// Reservation lifecycle
-	mux.HandleFunc("POST /api/v1/reservations/reserve", reservationHandler.ReserveSeat)
+	mux.Handle(
+		"POST /api/v1/reservations/reserve",
+		authMiddlware.Authenticate(
+			ratelimitMiddleware.Limit(
+				"reserve-seat",
+				5,
+				time.Minute*10,
+			)(
+				http.HandlerFunc(reservationHandler.ReserveSeat),
+			),
+		),
+	)
 	mux.HandleFunc("POST /api/v1/reservations/{id}/confirm", reservationHandler.ConfirmReservation)
 	mux.HandleFunc("DELETE /api/v1/reservations/{id}/user/{userId}", reservationHandler.CancelReservation)
 
@@ -320,10 +332,32 @@ func registerPassengerRoutes(mux *http.ServeMux, passengerHandler *handlers.Pass
 func registerPaymentRoutes(
 	mux *http.ServeMux,
 	paymentHandler *handlers.PaymentHandler,
+	ratelimitMiddleware *middleware.RateLimitMiddleware, authMiddlware *middleware.AuthMiddleware,
 ) {
-	mux.HandleFunc(
+	mux.Handle(
 		"POST /api/v1/payments",
-		paymentHandler.CreatePayment,
+		authMiddlware.Authenticate(
+			ratelimitMiddleware.Limit(
+				"create-payment",
+				5,
+				time.Minute*10,
+			)(
+				http.HandlerFunc(paymentHandler.CreatePayment),
+			),
+		),
+	)
+
+	mux.Handle(
+		"POST /api/v1/payments/refund",
+		authMiddlware.Authenticate(
+			ratelimitMiddleware.Limit(
+				"refund-payment",
+				5,
+				time.Minute*10,
+			)(
+				http.HandlerFunc(paymentHandler.RequestRefund),
+			),
+		),
 	)
 
 	mux.HandleFunc(

@@ -40,18 +40,35 @@ export default function LoginForm() {
 
   const onSubmit = async (data: LoginFormValues) => {
     setIsLoading(true);
+
     try {
       const { token } = await login(data);
-      localStorage.setItem("token", token);
+
+      localStorage.setItem("token", token); //Save the JWT token
+
       const user = await getCurrentUser();
       setUser(user);
+
       toast.success("Successfully logged in!");
       router.push("/");
+      
     } catch (error) {
       if (axios.isAxiosError(error)) {
+        if (error.response?.status === 429) {
+          const retryAfter = error.response.headers["retry-after"];
+
+          toast.error(
+            retryAfter
+              ? `Too many login attempts. Please try again in ${retryAfter} seconds.`
+              : "Too many login attempts. Please try again later."
+          );
+
+          return;
+        }
+
         toast.error(
           error.response?.data?.error ??
-          "Failed to login. Please try again."
+            "Failed to login. Please try again."
         );
       } else {
         toast.error("Something went wrong.");
@@ -68,7 +85,6 @@ export default function LoginForm() {
       transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
       className="group relative w-full max-w-[500px]"
     >
-      {/* Animated Border Beam (Masked strictly to the border) */}
       <div
         className="z-20 absolute inset-[-1px] rounded-[2rem] pointer-events-none"
         style={{
@@ -82,7 +98,7 @@ export default function LoginForm() {
         <div className="absolute inset-[-100%] bg-[conic-gradient(from_0deg,transparent_75%,#90D5F0_100%)] opacity-0 group-hover:opacity-100 transition-opacity animate-[spin_4s_linear_infinite] duration-500" />
       </div>
 
-      {/* Glass Container */}
+    
       <Spotlight fill="#90D5F0" className="left-20 w-98" />
       <div className="relative bg-white/50 shadow-[0_8px_32px_rgba(0,0,0,0.08),inset_0_0_0_1px_rgba(255,255,255,0.4),inset_0_1px_20px_rgba(255,255,255,0.9)] hover:shadow-[0_16px_48px_rgba(144,213,240,0.25),inset_0_0_0_1px_rgba(255,255,255,0.5),inset_0_1px_20px_rgba(255,255,255,1)] backdrop-blur-[40px] backdrop-saturate-150 p-10 sm:p-12 border border-white/60 rounded-[2rem] transition-all duration-500">
 
