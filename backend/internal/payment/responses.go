@@ -11,10 +11,10 @@ type CreateOrderResponse struct {
 }
 
 type CreatePaymentResponse struct {
-	OrderID  string
-	Amount   int64
-	Currency string
-	KeyID    string
+	OrderID  string `json:"orderId"`
+	Amount   int64  `json:"amount"`
+	Currency string `json:"currency"`
+	KeyID    string `json:"key"`
 }
 
 type RefundResponse struct {

@@ -7,5 +7,7 @@ export function useFlightSeats(flightId: string) {
     queryKey: ["flight-seats", flightId],
     queryFn: () => getFlightSeats(flightId),
     enabled: !!flightId,
+    staleTime: 0,
+    gcTime: 0, // Disable cache so it always fetches newest seats
   });
 }

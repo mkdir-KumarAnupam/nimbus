@@ -32,12 +32,15 @@ func (h *ReservationHandler) ReserveSeat(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	if err := h.reservationService.ReserveSeat(r.Context(), &req); err != nil {
+	reservationResponse, err := h.reservationService.ReserveSeat(r.Context(), &req)
+	if err != nil {
 		writeReservationError(w, err)
 		return
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(reservationResponse)
 }
 
 func (h *ReservationHandler) ConfirmReservation(w http.ResponseWriter, r *http.Request) {

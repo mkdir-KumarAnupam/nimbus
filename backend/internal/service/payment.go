@@ -87,6 +87,14 @@ func (s *PaymentService) CreatePayment(
 		switch latestPayment.Status {
 
 		case domain2.PaymentPending:
+			if latestPayment.GatewayOrderID != nil {
+				return &payment2.CreatePaymentResponse{
+					OrderID:  *latestPayment.GatewayOrderID,
+					Amount:   latestPayment.Amount,
+					Currency: latestPayment.Currency,
+					KeyID:    s.keyID,
+				}, nil
+			}
 			return nil, errs.ErrPaymentAlreadyExists
 
 		case domain2.PaymentSucceeded:
@@ -344,9 +352,9 @@ func (s *PaymentService) RequestRefund(
 		return nil, err
 	}
 
-	paymentRecord, err := s.paymentRepository.GetPaymentByID(
+	paymentRecord, err := s.paymentRepository.GetLatestPaymentByReservationID(
 		ctx,
-		request.PaymentID)
+		request.ReservationID)
 	if err != nil {
 		return nil, err
 	}
@@ -637,4 +645,35 @@ func (s *PaymentService) handleRefundFailed(
 		ctx,
 		refundRecord,
 	)
+}
+
+func (s *PaymentService) GetPaymentSummary(
+	ctx context.Context,
+	reservationID string,
+) (*payment2.PaymentSummaryResponse, error) {
+	paymentRecord, err := s.paymentRepository.GetLatestPaymentByReservationID(ctx, reservationID)
+	if err != nil {
+		return nil, err
+	}
+
+	if paymentRecord == nil {
+		return nil, errs.ErrPaymentNotFound
+	}
+
+	summary := &payment2.PaymentSummaryResponse{
+		Amount:   paymentRecord.Amount,
+		Currency: paymentRecord.Currency,
+		Status:   string(paymentRecord.Status),
+	}
+
+	refundRecord, err := s.refundRepository.GetRefundByPaymentID(ctx, paymentRecord.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	if refundRecord != nil {
+		summary.RefundStatus = string(refundRecord.Status)
+	}
+
+	return summary, nil
 }

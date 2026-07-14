@@ -119,3 +119,25 @@ func (h *PaymentHandler) RequestRefund(
 		)
 	}
 }
+
+func (h *PaymentHandler) GetPaymentSummary(w http.ResponseWriter, r *http.Request) {
+	reservationID := r.PathValue("reservationId")
+
+	if reservationID == "" {
+		http.Error(w, "missing reservationId", http.StatusBadRequest)
+		return
+	}
+
+	response, err := h.paymentService.GetPaymentSummary(r.Context(), reservationID)
+	if err != nil {
+		writePaymentError(w, err)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}

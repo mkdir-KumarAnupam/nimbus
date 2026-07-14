@@ -26,8 +26,8 @@ type RefundRequest struct {
 }
 
 type RequestRefundRequest struct {
-	PaymentID string
-	Reason    domain.RefundReason
+	ReservationID string              `json:"reservationId"`
+	Reason        domain.RefundReason `json:"reason"`
 }
 
 type RefundDetails struct {
@@ -36,4 +36,11 @@ type RefundDetails struct {
 	Amount    int64  `json:"amount"`
 	Currency  string `json:"currency"`
 	Status    string `json:"status"`
+}
+
+type PaymentSummaryResponse struct {
+	Amount       int64  `json:"amount"`
+	Currency     string `json:"currency"`
+	Status       string `json:"status"`
+	RefundStatus string `json:"refundStatus,omitempty"`
 }

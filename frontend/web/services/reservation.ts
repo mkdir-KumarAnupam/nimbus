@@ -16,3 +16,19 @@ export async function reserveSeat(
 
   return data;
 }
+
+export async function cancelReservation(
+  reservationId: string,
+  userId: string
+): Promise<void> {
+  await api.delete(`/reservations/${reservationId}/user/${userId}`);
+}
+
+export async function getUserReservations(
+  userId: string
+): Promise<ReservationResponse[]> {
+  const { data } = await api.get<ReservationResponse[]>(
+    `/reservations/user/${userId}`
+  );
+  return data;
+}

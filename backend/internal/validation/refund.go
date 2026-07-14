@@ -23,7 +23,7 @@ func ValidateRequestRefundRequest(
 		return errs.ErrInvalidRequest
 	}
 
-	if err := ValidatePaymentID(request.PaymentID); err != nil {
+	if err := ValidateReservationID(request.ReservationID); err != nil {
 		return err
 	}
 

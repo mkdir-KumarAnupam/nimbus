@@ -54,3 +54,28 @@ export interface PassengerResponse {
   createdAt: string;
   updatedAt: string;
 }
+
+export interface SavedPassenger {
+  id: string;
+  userId: string;
+
+  firstName: string;
+  lastName: string;
+  gender: string;
+  dateOfBirth: string;
+  nationality: string;
+
+  email: string;
+  phone: string;
+
+  passportNumber?: string;
+  passportExpiry?: string;
+  passportCountry?: string;
+
+  mealPreference?: string;
+  specialAssistance?: string;
+  frequentFlyerNumber?: string;
+
+  createdAt: string;
+  updatedAt: string;
+}

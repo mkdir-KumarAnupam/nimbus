@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import {
   NavigationMenu,
   NavigationMenuItem,
@@ -11,7 +12,7 @@ import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/auth";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { LogOut } from "lucide-react";
+import { LogOut, User } from "lucide-react";
 
 export default function Navbar() {
   const router = useRouter();
@@ -49,7 +50,7 @@ export default function Navbar() {
             ">
 
         {/* Logo Area */}
-        <div className="flex shrink-0 items-center pl-2">
+        <Link href="/" className="flex shrink-0 items-center pl-2 cursor-pointer transition-transform hover:scale-105 active:scale-95">
           <Image
             src="/logo.png"
             alt="Nimbus Logo"
@@ -57,7 +58,7 @@ export default function Navbar() {
             height={32}
             className="object-contain"
           />
-        </div>
+        </Link>
 
         {/* Nav Links & CTA */}
         <NavigationMenu>
@@ -70,7 +71,10 @@ export default function Navbar() {
             </NavigationMenuItem>
 
             <NavigationMenuItem>
-              <NavigationMenuTrigger className="bg-transparent text-slate-700 transition-colors hover:bg-white/30 hover:text-blue-700 focus:bg-white/30 data-[state=open]:bg-white/30">
+              <NavigationMenuTrigger 
+                onClick={() => router.push('/my-trips')}
+                className="bg-transparent text-slate-700 transition-colors hover:bg-white/30 hover:text-blue-700 focus:bg-white/30 data-[state=open]:bg-white/30 cursor-pointer"
+              >
                 My Trips
               </NavigationMenuTrigger>
             </NavigationMenuItem>
@@ -105,6 +109,19 @@ export default function Navbar() {
                           transition={{ duration: 0.2 }}
                           className="absolute right-0 top-full mt-2 w-48 overflow-hidden rounded-2xl border border-white/60 bg-white/60 p-2 shadow-[0_8px_32px_rgba(0,0,0,0.1),inset_0_0_0_1px_rgba(255,255,255,0.4)] backdrop-blur-[40px] backdrop-saturate-150 z-50"
                         >
+                          <button
+                            onClick={() => {
+                              setIsDropdownOpen(false);
+                              router.push("/profile");
+                            }}
+                            className="flex w-full items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-700 transition-all hover:bg-white/60 hover:text-blue-600 active:scale-95"
+                          >
+                            <User className="h-4 w-4" />
+                            Profile & Settings
+                          </button>
+                          
+                          <div className="my-1 h-px w-full bg-slate-200/50" />
+
                           <button
                             onClick={handleLogout}
                             className="flex w-full items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium text-red-600 transition-all hover:bg-red-50 hover:text-red-700 active:scale-95"

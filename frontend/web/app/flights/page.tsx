@@ -17,3 +17,18 @@ export default async function FlightsPage({
 
   return <FlightsClient searchParams={params} />;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

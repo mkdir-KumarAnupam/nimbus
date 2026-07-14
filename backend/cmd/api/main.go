@@ -9,6 +9,8 @@ import (
 	"github.com/joho/godotenv"
 
 	"github.com/mkdir-KumarAnupam/airline-booking/backend/internal/auth"
+	"github.com/mkdir-KumarAnupam/airline-booking/backend/internal/email"
+	"github.com/mkdir-KumarAnupam/airline-booking/backend/internal/ratelimit"
 
 	config "github.com/mkdir-KumarAnupam/airline-booking/backend/internal/configs"
 
@@ -58,6 +60,8 @@ func main() {
 		cfg.RedisDB,
 	)
 
+	redisLimiter := ratelimit.NewRedisLimiter(redisClient)
+	rateLimitMiddleware := middleware.NewRateLimitMiddleware(redisLimiter)
 	jwtService := auth.NewJWTService(
 		cfg.JWTSecret,
 		15*time.Minute,
@@ -102,13 +106,20 @@ func main() {
 	ticketService := service.NewTicketService(ticketRepo)
 	ticketHandler := handlers.NewTicketHandler(ticketService)
 
+	emailService := email.NewResendService(cfg.ResendAPIKey, cfg.EmailFrom)
+	emailHandler := handlers.NewEmailHandler(emailService)
+
 	bookingWorkflowService := service.NewBookingWorkflowService(
 		gormUOW,
 		reservationRepo,
 		flightSeatRepo,
 		flightRepo,
+		passengerRepo,
+		airportRepo,
+		ticketRepo,
 		reservationService,
 		ticketService,
+		emailService,
 	)
 
 	paymentRepo := postgres.NewPaymentRepository(db)
@@ -134,9 +145,14 @@ func main() {
 
 	go reservationService.StartExpirationWorker(ctx)
 
+	savedPassengerRepo := postgres.NewSavedPassengerRepository(db)
+	savedPassengerService := service.NewSavedPassengerService(savedPassengerRepo)
+	savedPassengerHandler := handlers.NewSavedPassengerHandler(savedPassengerService)
+
 	mux := newMux(
 		userHandler,
 		authMiddleware,
+		rateLimitMiddleware,
 		airportHandler,
 		aircraftHandler,
 		flightHandler,
@@ -146,6 +162,8 @@ func main() {
 		passengerHandler,
 		paymentHandler,
 		ticketHandler,
+		savedPassengerHandler,
+		emailHandler,
 	)
 
 	handler := middleware.CORS(mux)
@@ -159,6 +177,7 @@ func main() {
 func newMux(
 	userHandler *handlers.UserHandler,
 	authMiddleware *middleware.AuthMiddleware,
+	rateLimitMiddleware *middleware.RateLimitMiddleware,
 	airportHandler *handlers.AirportHandler,
 	aircraftHandler *handlers.AircraftHandler,
 	flightHandler *handlers.FlightHandler,
@@ -168,6 +187,8 @@ func newMux(
 	passengerHandler *handlers.PassengerHandler,
 	paymentHandler *handlers.PaymentHandler,
 	ticketHandler *handlers.TicketHandler,
+	savedPassengerHandler *handlers.SavedPassengerHandler,
+	emailHandler *handlers.EmailHandler,
 ) *http.ServeMux {
 	mux := http.NewServeMux()
 
@@ -175,8 +196,45 @@ func newMux(
 		"GET /api/v1/users/me",
 		authMiddleware.Authenticate(http.HandlerFunc(userHandler.Me)),
 	)
-	mux.HandleFunc("POST /api/v1/auth/register", userHandler.Register)
-	mux.HandleFunc("POST /api/v1/auth/login", userHandler.Login)
+
+	mux.Handle(
+		"GET /api/v1/users/me/saved-passengers",
+		authMiddleware.Authenticate(http.HandlerFunc(savedPassengerHandler.GetSavedPassengers)),
+	)
+	mux.Handle(
+		"POST /api/v1/users/me/saved-passengers",
+		authMiddleware.Authenticate(http.HandlerFunc(savedPassengerHandler.CreateSavedPassenger)),
+	)
+	mux.Handle(
+		"PUT /api/v1/users/me/saved-passengers/{id}",
+		authMiddleware.Authenticate(http.HandlerFunc(savedPassengerHandler.UpdateSavedPassenger)),
+	)
+	mux.Handle(
+		"DELETE /api/v1/users/me/saved-passengers/{id}",
+		authMiddleware.Authenticate(http.HandlerFunc(savedPassengerHandler.DeleteSavedPassenger)),
+	)
+
+	mux.Handle(
+		"POST /api/v1/auth/register",
+		rateLimitMiddleware.Limit(
+			"register",
+			5,
+			time.Minute,
+		)(
+			http.HandlerFunc(userHandler.Register),
+		),
+	)
+
+	mux.Handle(
+		"POST /api/v1/auth/login",
+		rateLimitMiddleware.Limit(
+			"login",
+			5,
+			time.Minute,
+		)(
+			http.HandlerFunc(userHandler.Login),
+		),
+	)
 	registerAirportRoutes(mux, airportHandler)
 	registerAircraftRoutes(mux, aircraftHandler)
 	registerFlightRoutes(mux, flightHandler)
@@ -186,6 +244,7 @@ func newMux(
 	registerPassengerRoutes(mux, passengerHandler)
 	registerPaymentRoutes(mux, paymentHandler)
 	registerTicketRoutes(mux, ticketHandler)
+	registerEmailRoutes(mux, emailHandler)
 	return mux
 }
 
@@ -275,6 +334,18 @@ func registerPaymentRoutes(
 	mux.HandleFunc(
 		"POST /api/v1/payments/webhook",
 		paymentHandler.Webhook,
+	)
+
+	mux.HandleFunc(
+		"GET /api/v1/payments/reservation/{reservationId}",
+		paymentHandler.GetPaymentSummary,
+	)
+}
+
+func registerEmailRoutes(mux *http.ServeMux, emailhandler *handlers.EmailHandler) {
+	mux.HandleFunc(
+		"GET /api/v1/test/email",
+		emailhandler.TestBookingEmail,
 	)
 }
 

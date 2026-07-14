@@ -50,47 +50,47 @@ func NewReservationService(
 	}
 }
 
-func (s *ReservationService) ReserveSeat(ctx context.Context, reservation *dto.ReserveSeatRequest) error {
+func (s *ReservationService) ReserveSeat(ctx context.Context, reservation *dto.ReserveSeatRequest) (*dto.ReservationResponse, error) {
 	now := time.Now().UTC()
 
 	if err := validation.ValidateReserveSeatRequest(reservation); err != nil {
-		return err
+		return nil, err
 	}
 	// Validate user
 	if err := s.validateReservationUserID(ctx, reservation.UserID); err != nil {
-		return err
+		return nil, err
 	}
 
 	// Load flight seat
 	flightSeat, err := s.flightSeatRepository.GetByID(ctx, reservation.FlightSeatID)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if flightSeat == nil {
-		return errs.ErrFlightSeatNotFound
+		return nil, errs.ErrFlightSeatNotFound
 	}
 
 	flight, err := s.flightRepository.GetByID(ctx, flightSeat.FlightID)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if flight == nil {
-		return errs.ErrFlightNotFound
+		return nil, errs.ErrFlightNotFound
 	}
 
 	if flight.Status != domain2.FlightScheduled {
-		return errs.ErrFlightStatusInvalid
+		return nil, errs.ErrFlightStatusInvalid
 	}
 
 	if !flight.DepartureTime.After(now) {
-		return errs.ErrFlightHasDeparted
+		return nil, errs.ErrFlightHasDeparted
 	}
 
 	// Check seat available
 	if flightSeat.Status != domain2.SeatAvailable {
-		return errs.ErrFlightSeatNotAvailable
+		return nil, errs.ErrFlightSeatNotAvailable
 	}
 
 	// Acquire Redis hold
@@ -98,11 +98,11 @@ func (s *ReservationService) ReserveSeat(ctx context.Context, reservation *dto.R
 
 	ok, err := s.redis.SetNX(ctx, key, reservation.UserID, reservationHoldDuration).Result()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if !ok {
-		return errs.ErrFlightSeatNotAvailable
+		return nil, errs.ErrFlightSeatNotAvailable
 	}
 
 	// Release the Redis hold unless we succeed.
@@ -116,7 +116,7 @@ func (s *ReservationService) ReserveSeat(ctx context.Context, reservation *dto.R
 	// Generate reservation reference
 	ref, err := s.generateUniqueReservationRef(ctx)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// Create reservation
@@ -146,12 +146,12 @@ func (s *ReservationService) ReserveSeat(ctx context.Context, reservation *dto.R
 	})
 
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	success = true
 
-	return nil
+	return resvToResponse(reserve), nil
 }
 
 func (s *ReservationService) validateReservationUserID(ctx context.Context, userID string) error {

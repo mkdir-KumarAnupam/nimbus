@@ -17,6 +17,9 @@ type Config struct {
 	RazorpayKeyID         string
 	RazorpayKeySecret     string
 	RazorpayWebhookSecret string
+
+	ResendAPIKey string
+	EmailFrom    string
 }
 
 func Load() (*Config, error) {
@@ -35,6 +38,9 @@ func Load() (*Config, error) {
 		RazorpayKeyID:         os.Getenv("RAZORPAY_KEY_ID"),
 		RazorpayKeySecret:     os.Getenv("RAZORPAY_KEY_SECRET"),
 		RazorpayWebhookSecret: os.Getenv("RAZORPAY_WEBHOOK_SECRET"),
+
+		ResendAPIKey: os.Getenv("RESEND_API_KEY"),
+		EmailFrom:    os.Getenv("EMAIL_FROM"),
 	}
 
 	if cfg.RedisAddr == "" {

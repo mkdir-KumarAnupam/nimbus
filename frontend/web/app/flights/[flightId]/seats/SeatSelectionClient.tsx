@@ -40,6 +40,10 @@ export default function SeatSelectionClient({
     (state) => state.setReservation
   );
 
+  const setSelectedSeatId = useBookingStore(
+    (state) => state.setSelectedSeat
+  );
+
   const {
     data: seats,
     isLoading: isSeatsLoading,
@@ -66,6 +70,8 @@ export default function SeatSelectionClient({
     setSelectedSeat(seat);
   }
 
+  const [isReserving, setIsReserving] = useState(false);
+
   const handleReserveSeat = async () => {
     if (!user) {
       toast.error("Please login first.");
@@ -73,17 +79,20 @@ export default function SeatSelectionClient({
       return;
     }
 
-    if (!selectedSeatId) {
+    if (!selectedSeat) {
       toast.error("Please select a seat.");
       return;
     }
 
+    setIsReserving(true);
+
     try {
       const reservation = await reserveSeat({
         userId: user.id,
-        flightSeatId: selectedSeatId,
+        flightSeatId: selectedSeat.id,
       });
 
+      setSelectedSeatId(selectedSeat.id);
       setReservation(reservation);
 
       toast.success("Seat reserved successfully.");
@@ -94,6 +103,8 @@ export default function SeatSelectionClient({
         error?.response?.data?.error ??
         "Unable to reserve seat."
       );
+    } finally {
+      setIsReserving(false);
     }
   };
 
@@ -312,10 +323,14 @@ export default function SeatSelectionClient({
               <button
                 type="button"
                 onClick={handleReserveSeat}
-                disabled={!selectedSeat}
-                className={cn('w-full', 'py-3.5', 'z-10', 'relative', 'rounded-2xl', 'font-extrabold', 'text-sm', 'text-white', 'bg-blue-600', 'shadow-[0_8px_20px_rgba(37,99,235,0.2)]', 'hover:bg-blue-700', 'hover:shadow-[0_12px_24px_rgba(37,99,235,0.3)]', 'hover:scale-[1.02]', 'active:scale-[0.98]', 'transition-all', 'duration-300', 'disabled:opacity-50', 'disabled:cursor-not-allowed', 'disabled:hover:scale-100', 'disabled:hover:bg-blue-600')}
+                disabled={!selectedSeat || isReserving}
+                className={cn('w-full', 'py-3.5', 'z-10', 'relative', 'rounded-2xl', 'font-extrabold', 'text-sm', 'text-white', 'bg-blue-600', 'shadow-[0_8px_20px_rgba(37,99,235,0.2)]', 'hover:bg-blue-700', 'hover:shadow-[0_12px_24px_rgba(37,99,235,0.3)]', 'hover:scale-[1.02]', 'active:scale-[0.98]', 'transition-all', 'duration-300', 'disabled:opacity-50', 'disabled:cursor-not-allowed', 'disabled:hover:scale-100', 'disabled:hover:bg-blue-600', 'flex', 'justify-center', 'items-center')}
               >
-                Confirm Selection
+                {isReserving ? (
+                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                ) : (
+                  "Confirm Selection"
+                )}
               </button>
             </div>
 
