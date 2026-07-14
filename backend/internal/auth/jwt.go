@@ -26,6 +26,7 @@ func (j *JWTService) Generate(user *domain.User) (string, error) {
 	claims := Claims{
 		Email:    user.Email,
 		Username: user.Username,
+		Role:     string(user.Role),
 		RegisteredClaims: jwt.RegisteredClaims{
 			Subject:   user.ID,
 			IssuedAt:  jwt.NewNumericDate(now),

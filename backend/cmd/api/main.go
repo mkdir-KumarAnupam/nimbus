@@ -73,6 +73,7 @@ func main() {
 	userService := service.NewUserService(userRepo, jwtService)
 	userHandler := handlers.NewUserHandler(userService)
 	authMiddleware := middleware.NewAuthMiddleware(jwtService)
+	authorizationMiddleware := middleware.NewAuthorizationMiddleware()
 
 	airportRepo := postgres.NewAirportRepository(db)
 	airportService := service.NewAirportService(airportRepo)
@@ -152,6 +153,7 @@ func main() {
 	mux := newMux(
 		userHandler,
 		authMiddleware,
+		authorizationMiddleware,
 		rateLimitMiddleware,
 		airportHandler,
 		aircraftHandler,
@@ -177,6 +179,7 @@ func main() {
 func newMux(
 	userHandler *handlers.UserHandler,
 	authMiddleware *middleware.AuthMiddleware,
+	authorizationMiddleware *middleware.AuthorizationMiddleware,
 	rateLimitMiddleware *middleware.RateLimitMiddleware,
 	airportHandler *handlers.AirportHandler,
 	aircraftHandler *handlers.AircraftHandler,
@@ -203,11 +206,19 @@ func newMux(
 	)
 	mux.Handle(
 		"POST /api/v1/users/me/saved-passengers",
-		authMiddleware.Authenticate(http.HandlerFunc(savedPassengerHandler.CreateSavedPassenger)),
+		authMiddleware.Authenticate(
+			rateLimitMiddleware.Limit("create-saved-passenger", 5, time.Minute)(
+				http.HandlerFunc(savedPassengerHandler.CreateSavedPassenger),
+			),
+		),
 	)
 	mux.Handle(
 		"PUT /api/v1/users/me/saved-passengers/{id}",
-		authMiddleware.Authenticate(http.HandlerFunc(savedPassengerHandler.UpdateSavedPassenger)),
+		authMiddleware.Authenticate(
+			rateLimitMiddleware.Limit("update-saved-passenger", 5, time.Minute)(
+				http.HandlerFunc(savedPassengerHandler.UpdateSavedPassenger),
+			),
+		),
 	)
 	mux.Handle(
 		"DELETE /api/v1/users/me/saved-passengers/{id}",
@@ -236,64 +247,87 @@ func newMux(
 		),
 	)
 
-	registerAirportRoutes(mux, airportHandler)
-	registerAircraftRoutes(mux, aircraftHandler)
-	registerFlightRoutes(mux, flightHandler)
-	registerSeatRoutes(mux, seatHandler)
-	registerFlightSeatRoutes(mux, flightSeatHandler)
+	registerAirportRoutes(mux, airportHandler, rateLimitMiddleware, authMiddleware, authorizationMiddleware)
+	registerAircraftRoutes(mux, aircraftHandler, authMiddleware, authorizationMiddleware)
+	registerFlightRoutes(mux, flightHandler, rateLimitMiddleware, authMiddleware, authorizationMiddleware)
+	registerSeatRoutes(mux, seatHandler, authMiddleware, authorizationMiddleware)
+	registerFlightSeatRoutes(mux, flightSeatHandler, rateLimitMiddleware, authMiddleware, authorizationMiddleware)
 	registerReservationRoutes(mux, reservationHandler, rateLimitMiddleware, authMiddleware)
-	registerPassengerRoutes(mux, passengerHandler)
+	registerPassengerRoutes(mux, passengerHandler, rateLimitMiddleware)
 	registerPaymentRoutes(mux, paymentHandler, rateLimitMiddleware, authMiddleware)
 	registerTicketRoutes(mux, ticketHandler)
-	registerEmailRoutes(mux, emailHandler)
+	registerEmailRoutes(mux, emailHandler, rateLimitMiddleware)
 	return mux
 }
 
-func registerAirportRoutes(mux *http.ServeMux, airportHandler *handlers.AirportHandler) {
-	mux.HandleFunc("POST /api/v1/airports", airportHandler.CreateAirport)
+func registerAirportRoutes(mux *http.ServeMux, airportHandler *handlers.AirportHandler, ratelimitMiddleware *middleware.RateLimitMiddleware, authMiddleware *middleware.AuthMiddleware, authorizationMiddleware *middleware.AuthorizationMiddleware) {
+	mux.Handle("POST /api/v1/airports", authMiddleware.Authenticate(authorizationMiddleware.RequireAdmin()(http.HandlerFunc(airportHandler.CreateAirport))))
 	mux.HandleFunc("GET /api/v1/airports", airportHandler.ListAirports)
-	mux.HandleFunc("GET /api/v1/airports/search", airportHandler.SearchAirports)
+	mux.Handle(
+		"GET /api/v1/airports/search",
+		ratelimitMiddleware.Limit("search-airports", 10, time.Minute)(
+			http.HandlerFunc(airportHandler.SearchAirports),
+		),
+	)
 	mux.HandleFunc("GET /api/v1/airports/code/{code}", airportHandler.GetAirportByCode)
 	mux.HandleFunc("GET /api/v1/airports/{id}", airportHandler.GetAirportByID)
-	mux.HandleFunc("PUT /api/v1/airports/{id}", airportHandler.UpdateAirportByID)
-	mux.HandleFunc("DELETE /api/v1/airports/{id}", airportHandler.DeleteAirportByID)
+	mux.Handle("PUT /api/v1/airports/{id}", authMiddleware.Authenticate(authorizationMiddleware.RequireAdmin()(http.HandlerFunc(airportHandler.UpdateAirportByID))))
+	mux.Handle("DELETE /api/v1/airports/{id}", authMiddleware.Authenticate(authorizationMiddleware.RequireAdmin()(http.HandlerFunc(airportHandler.DeleteAirportByID))))
 }
 
-func registerAircraftRoutes(mux *http.ServeMux, aircraftHandler *handlers.AircraftHandler) {
-	mux.HandleFunc("POST /api/v1/aircrafts", aircraftHandler.CreateAircraft)
+func registerAircraftRoutes(mux *http.ServeMux, aircraftHandler *handlers.AircraftHandler, authMiddleware *middleware.AuthMiddleware, authorizationMiddleware *middleware.AuthorizationMiddleware) {
+	mux.Handle("POST /api/v1/aircrafts", authMiddleware.Authenticate(authorizationMiddleware.RequireAdmin()(http.HandlerFunc(aircraftHandler.CreateAircraft))))
 	mux.HandleFunc("GET /api/v1/aircrafts/registration/{registration}", aircraftHandler.GetAircraftByRegistration)
 	mux.HandleFunc("GET /api/v1/aircrafts/{id}", aircraftHandler.GetAircraftByID)
-	mux.HandleFunc("PUT /api/v1/aircrafts/{id}", aircraftHandler.UpdateAircraftByID)
-	mux.HandleFunc("DELETE /api/v1/aircrafts/{id}", aircraftHandler.DeleteAircraftByID)
+	mux.Handle("PUT /api/v1/aircrafts/{id}", authMiddleware.Authenticate(authorizationMiddleware.RequireAdmin()(http.HandlerFunc(aircraftHandler.UpdateAircraftByID))))
+	mux.Handle("DELETE /api/v1/aircrafts/{id}", authMiddleware.Authenticate(authorizationMiddleware.RequireAdmin()(http.HandlerFunc(aircraftHandler.DeleteAircraftByID))))
 }
 
-func registerFlightRoutes(mux *http.ServeMux, flightHandler *handlers.FlightHandler) {
+func registerFlightRoutes(mux *http.ServeMux, flightHandler *handlers.FlightHandler, ratelimitMiddleware *middleware.RateLimitMiddleware, authMiddleware *middleware.AuthMiddleware, authorizationMiddleware *middleware.AuthorizationMiddleware) {
 	mux.HandleFunc("GET /api/v1/flights", flightHandler.ListFlights)
-	mux.HandleFunc("POST /api/v1/flights", flightHandler.CreateFlight)
-	mux.HandleFunc("POST /api/v1/flights/search", flightHandler.SearchFlights)
+	mux.Handle(
+		"POST /api/v1/flights",
+		authMiddleware.Authenticate(
+			authorizationMiddleware.RequireAdmin()(
+				http.HandlerFunc(flightHandler.CreateFlight),
+			),
+		),
+	)
+	mux.Handle(
+		"POST /api/v1/flights/search",
+		ratelimitMiddleware.Limit("search-flights", 10, time.Minute)(
+			http.HandlerFunc(flightHandler.SearchFlights),
+		),
+	)
 	mux.HandleFunc("GET /api/v1/flights/number/{flightNumber}", flightHandler.GetFlightByFlightNumber)
 	mux.HandleFunc("GET /api/v1/flights/{id}", flightHandler.GetFlightByID)
-	mux.HandleFunc("PUT /api/v1/flights/{id}", flightHandler.UpdateFlightByID)
-	mux.HandleFunc("DELETE /api/v1/flights/{id}", flightHandler.DeleteFlightByID)
+	mux.Handle("PUT /api/v1/flights/{id}", authMiddleware.Authenticate(authorizationMiddleware.RequireAdmin()(http.HandlerFunc(flightHandler.UpdateFlightByID))))
+	mux.Handle("DELETE /api/v1/flights/{id}", authMiddleware.Authenticate(authorizationMiddleware.RequireAdmin()(http.HandlerFunc(flightHandler.DeleteFlightByID))))
 }
 
-func registerSeatRoutes(mux *http.ServeMux, seatHandler *handlers.SeatHandler) {
-	mux.HandleFunc("POST /api/v1/seats", seatHandler.CreateSeat)
+func registerSeatRoutes(mux *http.ServeMux, seatHandler *handlers.SeatHandler, authMiddleware *middleware.AuthMiddleware, authorizationMiddleware *middleware.AuthorizationMiddleware) {
+	mux.Handle("POST /api/v1/seats", authMiddleware.Authenticate(authorizationMiddleware.RequireAdmin()(http.HandlerFunc(seatHandler.CreateSeat))))
 	mux.HandleFunc("GET /api/v1/seats/{id}", seatHandler.GetSeatByID)
 	mux.HandleFunc("GET /api/v1/seats/aircraft/{aircraftId}", seatHandler.GetSeatsByAircraftID)
-	mux.HandleFunc("PUT /api/v1/seats/{id}", seatHandler.UpdateSeatByID)
-	mux.HandleFunc("DELETE /api/v1/seats/{id}", seatHandler.DeleteSeatByID)
+	mux.Handle("PUT /api/v1/seats/{id}", authMiddleware.Authenticate(authorizationMiddleware.RequireAdmin()(http.HandlerFunc(seatHandler.UpdateSeatByID))))
+	mux.Handle("DELETE /api/v1/seats/{id}", authMiddleware.Authenticate(authorizationMiddleware.RequireAdmin()(http.HandlerFunc(seatHandler.DeleteSeatByID))))
 }
 
-func registerFlightSeatRoutes(mux *http.ServeMux, flightSeatHandler *handlers.FlightSeatHandler) {
-	mux.HandleFunc("POST /api/v1/flight-seats", flightSeatHandler.CreateFlightSeat)
+func registerFlightSeatRoutes(mux *http.ServeMux, flightSeatHandler *handlers.FlightSeatHandler, ratelimitMiddleware *middleware.RateLimitMiddleware, authMiddleware *middleware.AuthMiddleware, authorizationMiddleware *middleware.AuthorizationMiddleware) {
+	mux.Handle("POST /api/v1/flight-seats", authMiddleware.Authenticate(authorizationMiddleware.RequireAdmin()(http.HandlerFunc(flightSeatHandler.CreateFlightSeat))))
 	mux.HandleFunc("GET /api/v1/flight-seats/{id}", flightSeatHandler.GetFlightSeatByID)
 	mux.HandleFunc("GET /api/v1/flight-seats/flight/{flightId}", flightSeatHandler.GetFlightSeatsByFlightID)
-	mux.HandleFunc("PUT /api/v1/flight-seats/{id}", flightSeatHandler.UpdateFlightSeatByID)
-	mux.HandleFunc("DELETE /api/v1/flight-seats/{id}", flightSeatHandler.DeleteFlightSeatByID)
-	mux.HandleFunc(
+	mux.Handle("PUT /api/v1/flight-seats/{id}", authMiddleware.Authenticate(authorizationMiddleware.RequireAdmin()(http.HandlerFunc(flightSeatHandler.UpdateFlightSeatByID))))
+	mux.Handle("DELETE /api/v1/flight-seats/{id}", authMiddleware.Authenticate(authorizationMiddleware.RequireAdmin()(http.HandlerFunc(flightSeatHandler.DeleteFlightSeatByID))))
+	mux.Handle(
 		"POST /api/v1/flights/{flightId}/inventory",
-		flightSeatHandler.GenerateFlightInventory,
+		authMiddleware.Authenticate(
+			authorizationMiddleware.RequireAdmin()(
+				ratelimitMiddleware.Limit("generate-inventory", 2, time.Minute)(
+					http.HandlerFunc(flightSeatHandler.GenerateFlightInventory),
+				),
+			),
+		),
 	)
 }
 
@@ -311,8 +345,18 @@ func registerReservationRoutes(mux *http.ServeMux, reservationHandler *handlers.
 			),
 		),
 	)
-	mux.HandleFunc("POST /api/v1/reservations/{id}/confirm", reservationHandler.ConfirmReservation)
-	mux.HandleFunc("DELETE /api/v1/reservations/{id}/user/{userId}", reservationHandler.CancelReservation)
+	mux.Handle(
+		"POST /api/v1/reservations/{id}/confirm",
+		ratelimitMiddleware.Limit("confirm-reservation", 5, time.Minute)(
+			http.HandlerFunc(reservationHandler.ConfirmReservation),
+		),
+	)
+	mux.Handle(
+		"DELETE /api/v1/reservations/{id}/user/{userId}",
+		ratelimitMiddleware.Limit("cancel-reservation", 5, time.Minute)(
+			http.HandlerFunc(reservationHandler.CancelReservation),
+		),
+	)
 
 	// Queries
 	mux.HandleFunc("GET /api/v1/reservations", reservationHandler.ListReservations)
@@ -321,8 +365,13 @@ func registerReservationRoutes(mux *http.ServeMux, reservationHandler *handlers.
 	mux.HandleFunc("GET /api/v1/reservations/flight/{flightId}", reservationHandler.GetReservationsByFlightID)
 }
 
-func registerPassengerRoutes(mux *http.ServeMux, passengerHandler *handlers.PassengerHandler) {
-	mux.HandleFunc("POST /api/v1/reservations/{reservationId}/passengers", passengerHandler.CreatePassenger)
+func registerPassengerRoutes(mux *http.ServeMux, passengerHandler *handlers.PassengerHandler, ratelimitMiddleware *middleware.RateLimitMiddleware) {
+	mux.Handle(
+		"POST /api/v1/reservations/{reservationId}/passengers",
+		ratelimitMiddleware.Limit("create-passenger", 10, time.Minute)(
+			http.HandlerFunc(passengerHandler.CreatePassenger),
+		),
+	)
 	mux.HandleFunc("GET /api/v1/passengers/reservation/{reservationId}", passengerHandler.GetPassengersByReservationID)
 	mux.HandleFunc("GET /api/v1/passengers/{id}", passengerHandler.GetPassengerByID)
 	mux.HandleFunc("PUT /api/v1/passengers/{id}", passengerHandler.UpdatePassenger)
@@ -361,11 +410,6 @@ func registerPaymentRoutes(
 	)
 
 	mux.HandleFunc(
-		"POST /api/v1/payments/refund",
-		paymentHandler.RequestRefund,
-	)
-
-	mux.HandleFunc(
 		"POST /api/v1/payments/webhook",
 		paymentHandler.Webhook,
 	)
@@ -376,10 +420,12 @@ func registerPaymentRoutes(
 	)
 }
 
-func registerEmailRoutes(mux *http.ServeMux, emailhandler *handlers.EmailHandler) {
-	mux.HandleFunc(
+func registerEmailRoutes(mux *http.ServeMux, emailhandler *handlers.EmailHandler, ratelimitMiddleware *middleware.RateLimitMiddleware) {
+	mux.Handle(
 		"GET /api/v1/test/email",
-		emailhandler.TestBookingEmail,
+		ratelimitMiddleware.Limit("test-email", 5, time.Minute)(
+			http.HandlerFunc(emailhandler.TestBookingEmail),
+		),
 	)
 }
 
