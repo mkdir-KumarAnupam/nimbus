@@ -7,10 +7,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/mkdir-KumarAnupam/airline-booking/backend/internal/dto"
-	"github.com/mkdir-KumarAnupam/airline-booking/backend/internal/errs"
-	"github.com/mkdir-KumarAnupam/airline-booking/backend/internal/response"
-	"github.com/mkdir-KumarAnupam/airline-booking/backend/internal/service"
+	"github.com/mkdir-KumarAnupam/airline-booking/internal/dto"
+	"github.com/mkdir-KumarAnupam/airline-booking/internal/errs"
+	"github.com/mkdir-KumarAnupam/airline-booking/internal/response"
+	"github.com/mkdir-KumarAnupam/airline-booking/internal/service"
 )
 
 type AirportHandler struct {

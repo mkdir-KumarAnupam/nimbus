@@ -1,7 +1,7 @@
 package payment
 
 import (
-	"github.com/mkdir-KumarAnupam/airline-booking/backend/internal/domain"
+	"github.com/mkdir-KumarAnupam/airline-booking/internal/domain"
 )
 
 type CreateOrderRequest struct {

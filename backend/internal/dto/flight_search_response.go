@@ -3,7 +3,7 @@ package dto
 import (
 	"time"
 
-	domain2 "github.com/mkdir-KumarAnupam/airline-booking/backend/internal/domain"
+	domain2 "github.com/mkdir-KumarAnupam/airline-booking/internal/domain"
 )
 
 type FlightSearchResponse struct {

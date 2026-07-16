@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/mkdir-KumarAnupam/airline-booking/backend/internal/domain"
+	"github.com/mkdir-KumarAnupam/airline-booking/internal/domain"
 )
 
 type JWTService struct {

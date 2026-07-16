@@ -8,12 +8,12 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	domain2 "github.com/mkdir-KumarAnupam/airline-booking/backend/internal/domain"
-	"github.com/mkdir-KumarAnupam/airline-booking/backend/internal/errs"
-	payment2 "github.com/mkdir-KumarAnupam/airline-booking/backend/internal/payment"
-	"github.com/mkdir-KumarAnupam/airline-booking/backend/internal/payment/razorpay"
-	repository2 "github.com/mkdir-KumarAnupam/airline-booking/backend/internal/repository"
-	validation2 "github.com/mkdir-KumarAnupam/airline-booking/backend/internal/validation"
+	domain2 "github.com/mkdir-KumarAnupam/airline-booking/internal/domain"
+	"github.com/mkdir-KumarAnupam/airline-booking/internal/errs"
+	payment2 "github.com/mkdir-KumarAnupam/airline-booking/internal/payment"
+	"github.com/mkdir-KumarAnupam/airline-booking/internal/payment/razorpay"
+	repository2 "github.com/mkdir-KumarAnupam/airline-booking/internal/repository"
+	validation2 "github.com/mkdir-KumarAnupam/airline-booking/internal/validation"
 )
 
 type PaymentService struct {

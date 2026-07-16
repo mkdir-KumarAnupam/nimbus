@@ -66,7 +66,7 @@ export default function PaymentPage() {
   const destinationAirport = airports.find((a) => a.id === flight?.destinationAirportId);
 
   // Use amount from backend if available, otherwise fallback to reservation total price
-  const amountInPaise = paymentData?.amount || paymentData?.Amount || (reservation.totalPrice || 0) * 100;
+  const amountInPaise = paymentData?.amount || (paymentData?.Amount || 0) * 100;
   const displayAmount = amountInPaise / 100;
 
   const handlePayment = async () => {

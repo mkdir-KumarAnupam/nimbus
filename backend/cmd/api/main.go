@@ -7,30 +7,23 @@ import (
 	"time"
 
 	"github.com/joho/godotenv"
-
-	"github.com/mkdir-KumarAnupam/airline-booking/backend/internal/auth"
-	"github.com/mkdir-KumarAnupam/airline-booking/backend/internal/email"
-	"github.com/mkdir-KumarAnupam/airline-booking/backend/internal/ratelimit"
-
-	config "github.com/mkdir-KumarAnupam/airline-booking/backend/internal/configs"
-
-	"github.com/mkdir-KumarAnupam/airline-booking/backend/internal/database"
-
-	"github.com/mkdir-KumarAnupam/airline-booking/backend/internal/handlers"
-
-	"github.com/mkdir-KumarAnupam/airline-booking/backend/internal/middleware"
-
-	"github.com/mkdir-KumarAnupam/airline-booking/backend/internal/payment/razorpay"
-
-	"github.com/mkdir-KumarAnupam/airline-booking/backend/internal/repository/postgres"
-
-	"github.com/mkdir-KumarAnupam/airline-booking/backend/internal/service"
+	"github.com/mkdir-KumarAnupam/airline-booking/internal/auth"
+	config "github.com/mkdir-KumarAnupam/airline-booking/internal/configs"
+	"github.com/mkdir-KumarAnupam/airline-booking/internal/database"
+	"github.com/mkdir-KumarAnupam/airline-booking/internal/email"
+	"github.com/mkdir-KumarAnupam/airline-booking/internal/handlers"
+	"github.com/mkdir-KumarAnupam/airline-booking/internal/middleware"
+	"github.com/mkdir-KumarAnupam/airline-booking/internal/payment/razorpay"
+	"github.com/mkdir-KumarAnupam/airline-booking/internal/ratelimit"
+	"github.com/mkdir-KumarAnupam/airline-booking/internal/repository/postgres"
+	"github.com/mkdir-KumarAnupam/airline-booking/internal/service"
 )
 
 func main() {
 
+	// Load only if the environment variables are not already set.
 	if err := godotenv.Load(); err != nil {
-		log.Fatal(err)
+		log.Println(".env not found, using environment variables")
 	}
 
 	db, err := database.NewPostgres()

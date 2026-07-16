@@ -5,12 +5,12 @@ import (
 	"log"
 	"time"
 
-	"github.com/mkdir-KumarAnupam/airline-booking/backend/internal/domain"
-	"github.com/mkdir-KumarAnupam/airline-booking/backend/internal/email"
-	"github.com/mkdir-KumarAnupam/airline-booking/backend/internal/errs"
-	"github.com/mkdir-KumarAnupam/airline-booking/backend/internal/repository"
-	"github.com/mkdir-KumarAnupam/airline-booking/backend/internal/uow"
-	"github.com/mkdir-KumarAnupam/airline-booking/backend/internal/validation"
+	"github.com/mkdir-KumarAnupam/airline-booking/internal/domain"
+	"github.com/mkdir-KumarAnupam/airline-booking/internal/email"
+	"github.com/mkdir-KumarAnupam/airline-booking/internal/errs"
+	"github.com/mkdir-KumarAnupam/airline-booking/internal/repository"
+	"github.com/mkdir-KumarAnupam/airline-booking/internal/uow"
+	"github.com/mkdir-KumarAnupam/airline-booking/internal/validation"
 )
 
 type BookingWorkflow interface {

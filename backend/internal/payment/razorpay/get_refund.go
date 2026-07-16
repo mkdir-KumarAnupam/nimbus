@@ -7,7 +7,7 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/mkdir-KumarAnupam/airline-booking/backend/internal/payment"
+	"github.com/mkdir-KumarAnupam/airline-booking/internal/payment"
 )
 
 type refundDetailsResponse struct {

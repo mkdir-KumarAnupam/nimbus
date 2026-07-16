@@ -3,7 +3,7 @@ package uow
 import (
 	"context"
 
-	repository2 "github.com/mkdir-KumarAnupam/airline-booking/backend/internal/repository"
+	repository2 "github.com/mkdir-KumarAnupam/airline-booking/internal/repository"
 )
 
 type Repositories struct {

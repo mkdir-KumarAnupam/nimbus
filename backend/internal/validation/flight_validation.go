@@ -6,9 +6,9 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/mkdir-KumarAnupam/airline-booking/backend/internal/domain"
-	dto2 "github.com/mkdir-KumarAnupam/airline-booking/backend/internal/dto"
-	"github.com/mkdir-KumarAnupam/airline-booking/backend/internal/errs"
+	"github.com/mkdir-KumarAnupam/airline-booking/internal/domain"
+	dto2 "github.com/mkdir-KumarAnupam/airline-booking/internal/dto"
+	"github.com/mkdir-KumarAnupam/airline-booking/internal/errs"
 )
 
 func ValidateFlightNumber(flightNumber string) error {

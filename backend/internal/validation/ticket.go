@@ -2,7 +2,7 @@ package validation
 
 import (
 	"github.com/google/uuid"
-	"github.com/mkdir-KumarAnupam/airline-booking/backend/internal/errs"
+	"github.com/mkdir-KumarAnupam/airline-booking/internal/errs"
 )
 
 func ValidateTicketID(ticketID string) error {

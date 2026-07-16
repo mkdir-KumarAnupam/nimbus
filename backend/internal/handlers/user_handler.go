@@ -5,11 +5,11 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/mkdir-KumarAnupam/airline-booking/backend/internal/auth"
-	dto2 "github.com/mkdir-KumarAnupam/airline-booking/backend/internal/dto"
-	"github.com/mkdir-KumarAnupam/airline-booking/backend/internal/middleware"
-	"github.com/mkdir-KumarAnupam/airline-booking/backend/internal/response"
-	"github.com/mkdir-KumarAnupam/airline-booking/backend/internal/service"
+	"github.com/mkdir-KumarAnupam/airline-booking/internal/auth"
+	dto2 "github.com/mkdir-KumarAnupam/airline-booking/internal/dto"
+	"github.com/mkdir-KumarAnupam/airline-booking/internal/middleware"
+	"github.com/mkdir-KumarAnupam/airline-booking/internal/response"
+	"github.com/mkdir-KumarAnupam/airline-booking/internal/service"
 )
 
 type UserHandler struct {

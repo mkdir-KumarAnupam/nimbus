@@ -6,12 +6,12 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	domain2 "github.com/mkdir-KumarAnupam/airline-booking/backend/internal/domain"
-	"github.com/mkdir-KumarAnupam/airline-booking/backend/internal/dto"
-	"github.com/mkdir-KumarAnupam/airline-booking/backend/internal/errs"
-	"github.com/mkdir-KumarAnupam/airline-booking/backend/internal/repository"
-	"github.com/mkdir-KumarAnupam/airline-booking/backend/internal/utils"
-	validation2 "github.com/mkdir-KumarAnupam/airline-booking/backend/internal/validation"
+	domain2 "github.com/mkdir-KumarAnupam/airline-booking/internal/domain"
+	"github.com/mkdir-KumarAnupam/airline-booking/internal/dto"
+	"github.com/mkdir-KumarAnupam/airline-booking/internal/errs"
+	"github.com/mkdir-KumarAnupam/airline-booking/internal/repository"
+	"github.com/mkdir-KumarAnupam/airline-booking/internal/utils"
+	validation2 "github.com/mkdir-KumarAnupam/airline-booking/internal/validation"
 )
 
 type TicketService struct {

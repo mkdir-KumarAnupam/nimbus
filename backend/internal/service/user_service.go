@@ -6,12 +6,12 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/mkdir-KumarAnupam/airline-booking/backend/internal/auth"
-	"github.com/mkdir-KumarAnupam/airline-booking/backend/internal/domain"
-	"github.com/mkdir-KumarAnupam/airline-booking/backend/internal/dto"
-	"github.com/mkdir-KumarAnupam/airline-booking/backend/internal/errs"
-	"github.com/mkdir-KumarAnupam/airline-booking/backend/internal/repository"
-	validation2 "github.com/mkdir-KumarAnupam/airline-booking/backend/internal/validation"
+	"github.com/mkdir-KumarAnupam/airline-booking/internal/auth"
+	"github.com/mkdir-KumarAnupam/airline-booking/internal/domain"
+	"github.com/mkdir-KumarAnupam/airline-booking/internal/dto"
+	"github.com/mkdir-KumarAnupam/airline-booking/internal/errs"
+	"github.com/mkdir-KumarAnupam/airline-booking/internal/repository"
+	validation2 "github.com/mkdir-KumarAnupam/airline-booking/internal/validation"
 	"golang.org/x/crypto/bcrypt"
 )
 

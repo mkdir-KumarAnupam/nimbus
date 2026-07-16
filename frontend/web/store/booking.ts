@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { ReservationResponse } from "@/services/reservation";
+import { ReservationResponse } from "@/types/reservation";
 
 interface BookingStore {
   selectedFlightId: string | null;

@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/mkdir-KumarAnupam/airline-booking/backend/internal/domain"
-	"github.com/mkdir-KumarAnupam/airline-booking/backend/internal/dto"
+	"github.com/mkdir-KumarAnupam/airline-booking/internal/domain"
+	"github.com/mkdir-KumarAnupam/airline-booking/internal/dto"
 )
 
 type FlightRepository interface {

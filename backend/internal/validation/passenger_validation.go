@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mkdir-KumarAnupam/airline-booking/backend/internal/dto"
+	"github.com/mkdir-KumarAnupam/airline-booking/internal/dto"
 )
 
 func ValidatePassengerName(name string) error {

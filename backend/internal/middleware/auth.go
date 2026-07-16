@@ -4,8 +4,8 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/mkdir-KumarAnupam/airline-booking/backend/internal/auth"
-	"github.com/mkdir-KumarAnupam/airline-booking/backend/internal/response"
+	"github.com/mkdir-KumarAnupam/airline-booking/internal/auth"
+	"github.com/mkdir-KumarAnupam/airline-booking/internal/response"
 )
 
 type AuthMiddleware struct {

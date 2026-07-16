@@ -6,13 +6,13 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	domain2 "github.com/mkdir-KumarAnupam/airline-booking/backend/internal/domain"
-	"github.com/mkdir-KumarAnupam/airline-booking/backend/internal/dto"
-	"github.com/mkdir-KumarAnupam/airline-booking/backend/internal/errs"
-	repository2 "github.com/mkdir-KumarAnupam/airline-booking/backend/internal/repository"
-	"github.com/mkdir-KumarAnupam/airline-booking/backend/internal/uow"
-	utils2 "github.com/mkdir-KumarAnupam/airline-booking/backend/internal/utils"
-	"github.com/mkdir-KumarAnupam/airline-booking/backend/internal/validation"
+	domain2 "github.com/mkdir-KumarAnupam/airline-booking/internal/domain"
+	"github.com/mkdir-KumarAnupam/airline-booking/internal/dto"
+	"github.com/mkdir-KumarAnupam/airline-booking/internal/errs"
+	repository2 "github.com/mkdir-KumarAnupam/airline-booking/internal/repository"
+	"github.com/mkdir-KumarAnupam/airline-booking/internal/uow"
+	utils2 "github.com/mkdir-KumarAnupam/airline-booking/internal/utils"
+	"github.com/mkdir-KumarAnupam/airline-booking/internal/validation"
 	"github.com/redis/go-redis/v9"
 )
 

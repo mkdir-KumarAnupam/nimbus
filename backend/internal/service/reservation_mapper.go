@@ -1,8 +1,8 @@
 package service
 
 import (
-	"github.com/mkdir-KumarAnupam/airline-booking/backend/internal/domain"
-	"github.com/mkdir-KumarAnupam/airline-booking/backend/internal/dto"
+	"github.com/mkdir-KumarAnupam/airline-booking/internal/domain"
+	"github.com/mkdir-KumarAnupam/airline-booking/internal/dto"
 )
 
 func resvToResponse(reservation *domain.Reservation) *dto.ReservationResponse {

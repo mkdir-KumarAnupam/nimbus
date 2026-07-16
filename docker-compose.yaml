@@ -1,16 +1,57 @@
+version: "3.9"
+
 services:
   redis:
-    container_name: redis
-    image: redis:7-alpine
+    image: redis:8-alpine
+    container_name: airlinego-redis
+
+    restart: unless-stopped
+
     ports:
       - "6379:6379"
-  redis-commander:
-    container_name: redis-commander
-    hostname: redis-commander
-    image: ghcr.io/joeferner/redis-commander:latest
-    restart: always
+
+    volumes:
+      - redis_data:/data
+
+    command: redis-server --appendonly yes
+
+  backend:
+    build:
+      context: ./backend
+
+    restart: unless-stopped
+
+    depends_on:
+      - redis
+
+    env_file:
+      - ./backend/.env
+
     environment:
-      - REDIS_HOSTS=local:redis:6379
+      REDIS_ADDR: redis:6379
+
     ports:
-      - "8081:8081"
-    user: redis
+      - "8088:8088"
+
+  frontend:
+    build:
+      context: ./frontend/web
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:8088/api/v1
+
+    container_name: airlinego-frontend
+
+    restart: unless-stopped
+
+    depends_on:
+      - backend
+
+    env_file:
+      - ./frontend/web/.env.local
+
+    ports:
+      - "3000:3000"
+
+volumes:
+  redis_data:

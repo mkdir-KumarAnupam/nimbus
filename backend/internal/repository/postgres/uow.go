@@ -3,7 +3,7 @@ package postgres
 import (
 	"context"
 
-	"github.com/mkdir-KumarAnupam/airline-booking/backend/internal/uow"
+	"github.com/mkdir-KumarAnupam/airline-booking/internal/uow"
 	"gorm.io/gorm"
 )
 

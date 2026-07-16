@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/mkdir-KumarAnupam/airline-booking/backend/internal/domain"
+	"github.com/mkdir-KumarAnupam/airline-booking/internal/domain"
 )
 
 type ReservationRepository interface {

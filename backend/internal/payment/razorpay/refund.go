@@ -8,7 +8,7 @@ import (
 	"io"
 	"net/http"
 
-	payment2 "github.com/mkdir-KumarAnupam/airline-booking/backend/internal/payment"
+	payment2 "github.com/mkdir-KumarAnupam/airline-booking/internal/payment"
 )
 
 type refundRequest struct {

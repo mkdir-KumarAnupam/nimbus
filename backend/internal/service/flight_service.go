@@ -4,11 +4,11 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-	domain2 "github.com/mkdir-KumarAnupam/airline-booking/backend/internal/domain"
-	dto2 "github.com/mkdir-KumarAnupam/airline-booking/backend/internal/dto"
-	"github.com/mkdir-KumarAnupam/airline-booking/backend/internal/errs"
-	repository2 "github.com/mkdir-KumarAnupam/airline-booking/backend/internal/repository"
-	"github.com/mkdir-KumarAnupam/airline-booking/backend/internal/validation"
+	domain2 "github.com/mkdir-KumarAnupam/airline-booking/internal/domain"
+	dto2 "github.com/mkdir-KumarAnupam/airline-booking/internal/dto"
+	"github.com/mkdir-KumarAnupam/airline-booking/internal/errs"
+	repository2 "github.com/mkdir-KumarAnupam/airline-booking/internal/repository"
+	"github.com/mkdir-KumarAnupam/airline-booking/internal/validation"
 )
 
 type FlightService struct {

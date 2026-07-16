@@ -6,9 +6,9 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/mkdir-KumarAnupam/airline-booking/backend/internal/errs"
-	"github.com/mkdir-KumarAnupam/airline-booking/backend/internal/payment"
-	"github.com/mkdir-KumarAnupam/airline-booking/backend/internal/service"
+	"github.com/mkdir-KumarAnupam/airline-booking/internal/errs"
+	"github.com/mkdir-KumarAnupam/airline-booking/internal/payment"
+	"github.com/mkdir-KumarAnupam/airline-booking/internal/service"
 )
 
 type PaymentHandler struct {

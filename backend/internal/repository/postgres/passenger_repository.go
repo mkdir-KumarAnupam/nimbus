@@ -4,8 +4,8 @@ import (
 	"context"
 	"errors"
 
-	"github.com/mkdir-KumarAnupam/airline-booking/backend/internal/domain"
-	"github.com/mkdir-KumarAnupam/airline-booking/backend/internal/errs"
+	"github.com/mkdir-KumarAnupam/airline-booking/internal/domain"
+	"github.com/mkdir-KumarAnupam/airline-booking/internal/errs"
 	"gorm.io/gorm"
 )
 
