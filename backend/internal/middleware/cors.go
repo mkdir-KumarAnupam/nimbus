@@ -1,13 +1,16 @@
 package middleware
 
-import "net/http"
+import (
+	"net/http"
+	"os"
+)
 
 func CORS(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 		allowedOrigins := map[string]bool{
-			"http://localhost:3000": true,
-			// "https://airlinego.com": true,
+			"http://localhost:3000":   true,
+			os.Getenv("FRONTEND_URL"): true,
 		}
 
 		origin := r.Header.Get("Origin")
