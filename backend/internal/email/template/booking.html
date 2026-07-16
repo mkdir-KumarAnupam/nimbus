@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>Booking Confirmed — Nimbus Airways</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      background: #0b1e33;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+      color: #0f2942;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    table {
+      border-collapse: collapse;
+    }
+
+    .wrapper {
+      width: 100%;
+      padding: 48px 16px;
+      background:
+        radial-gradient(circle at 15% 10%, rgba(87, 168, 236, 0.35), transparent 45%),
+        radial-gradient(circle at 85% 0%, rgba(29, 111, 209, 0.35), transparent 40%),
+        linear-gradient(160deg, #06152a 0%, #0c2c4d 45%, #123a63 100%);
+    }
+
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      background: #ffffff;
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 30px 60px -25px rgba(0, 0, 0, 0.55);
+    }
+
+    /* ---------- Header ---------- */
+    .header {
+      background: linear-gradient(160deg, #0a2647 0%, #123a63 60%, #1d4e7c 100%);
+      padding: 40px 40px 96px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .header::before {
+      content: "";
+      position: absolute;
+      top: -60px;
+      right: -60px;
+      width: 220px;
+      height: 220px;
+      background: radial-gradient(circle, rgba(255, 255, 255, 0.10), transparent 70%);
+    }
+
+    .brand-row {
+      display: table;
+      width: 100%;
+    }
+
+    .brand {
+      font-size: 13px;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: #a9c6e6;
+      font-weight: 600;
+    }
+
+    .status-pill {
+      float: right;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      color: #d7e8fa;
+      font-size: 11px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      font-weight: 600;
+      padding: 6px 14px;
+      border-radius: 999px;
+    }
+
+    .headline {
+      color: #ffffff;
+      font-size: 24px;
+      font-weight: 700;
+      margin: 34px 0 6px;
+      letter-spacing: -0.3px;
+    }
+
+    .subline {
+      color: #a9c6e6;
+      font-size: 14px;
+      margin: 0;
+    }
+
+    /* ---------- Glass pass card ---------- */
+    .pass-wrap {
+      padding: 0 24px;
+      margin-top: -72px;
+      position: relative;
+      z-index: 2;
+    }
+
+    .pass {
+      background: rgba(255, 255, 255, 0.72);
+      -webkit-backdrop-filter: blur(18px) saturate(160%);
+      backdrop-filter: blur(18px) saturate(160%);
+      border: 1px solid rgba(255, 255, 255, 0.6);
+      border-radius: 18px;
+      box-shadow: 0 20px 40px -22px rgba(10, 38, 71, 0.45);
+      overflow: hidden;
+    }
+
+    .pass-route {
+      padding: 28px 30px 20px;
+    }
+
+    .airport-code {
+      font-size: 30px;
+      font-weight: 700;
+      color: #0a2647;
+      letter-spacing: 0.5px;
+    }
+
+    .airport-city {
+      font-size: 12px;
+      color: #5c7692;
+      margin-top: 4px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      font-weight: 600;
+    }
+
+    .flight-path {
+      text-align: center;
+      padding: 0 12px;
+      vertical-align: middle;
+    }
+
+    .flight-path .dash {
+      display: block;
+      height: 1px;
+      background: repeating-linear-gradient(90deg, #9db8d4 0, #9db8d4 5px, transparent 5px, transparent 10px);
+      margin-bottom: 8px;
+    }
+
+    .time-row td {
+      padding-top: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #35506b;
+    }
+
+    .divider {
+      margin: 0 30px;
+      border-top: 1px solid rgba(15, 41, 66, 0.10);
+    }
+
+    .pass-details {
+      padding: 20px 30px 26px;
+    }
+
+    .detail-row {
+      display: table;
+      width: 100%;
+      padding: 10px 0;
+      border-bottom: 1px solid rgba(15, 41, 66, 0.06);
+    }
+
+    .detail-row:last-child {
+      border-bottom: none;
+    }
+
+    .detail-label {
+      display: table-cell;
+      color: #5c7692;
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    .detail-value {
+      display: table-cell;
+      text-align: right;
+      font-weight: 700;
+      color: #0a2647;
+      font-size: 13px;
+      letter-spacing: 0.2px;
+    }
+
+    /* ---------- Body copy ---------- */
+    .content {
+      padding: 34px 40px 4px;
+    }
+
+    .greeting {
+      font-size: 18px;
+      font-weight: 700;
+      margin: 0 0 10px;
+      color: #0a2647;
+    }
+
+    .body-text {
+      color: #5c7692;
+      line-height: 1.7;
+      font-size: 14px;
+      margin: 0;
+    }
+
+    .info-panel {
+      margin: 26px 40px 8px;
+      background: rgba(18, 58, 99, 0.05);
+      border: 1px solid rgba(18, 58, 99, 0.10);
+      border-radius: 14px;
+      padding: 18px 20px;
+      font-size: 13px;
+      color: #35506b;
+      line-height: 1.65;
+    }
+
+    .info-panel .info-title {
+      display: block;
+      font-weight: 700;
+      color: #0a2647;
+      margin-bottom: 4px;
+      font-size: 13px;
+      letter-spacing: 0.2px;
+    }
+
+    /* ---------- CTA ---------- */
+    .cta-wrap {
+      text-align: center;
+      padding: 30px 40px 4px;
+    }
+
+    .button {
+      display: inline-block;
+      background: #123a63;
+      color: #ffffff !important;
+      text-decoration: none;
+      padding: 14px 32px;
+      border-radius: 10px;
+      font-weight: 600;
+      font-size: 14px;
+      letter-spacing: 0.2px;
+      box-shadow: 0 14px 26px -12px rgba(18, 58, 99, 0.55);
+    }
+
+    .secondary-link {
+      display: block;
+      margin-top: 16px;
+      color: #7c93ab;
+      font-size: 12px;
+      text-decoration: none;
+      border-bottom: 1px solid rgba(124, 147, 171, 0.4);
+      display: inline-block;
+    }
+
+    /* ---------- Footer ---------- */
+    .footer {
+      margin-top: 28px;
+      padding: 24px 40px 34px;
+      text-align: center;
+      border-top: 1px solid #eef2f7;
+    }
+
+    .footer-thanks {
+      color: #0a2647;
+      font-weight: 600;
+      font-size: 14px;
+      margin: 0 0 6px;
+    }
+
+    .footer-sub {
+      color: #a3b4c6;
+      font-size: 12px;
+      margin: 0;
+    }
+
+    @media (max-width: 480px) {
+
+      .header,
+      .content,
+      .cta-wrap,
+      .footer {
+        padding-left: 22px;
+        padding-right: 22px;
+      }
+
+      .info-panel {
+        margin-left: 22px;
+        margin-right: 22px;
+      }
+
+      .airport-code {
+        font-size: 24px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrapper">
+    <div class="container">
+
+      <!-- Header -->
+      <div class="header">
+        <div class="brand-row">
+          <span class="brand">Nimbus Airways</span>
+          <span class="status-pill">Confirmed</span>
+        </div>
+        <p class="headline">Your booking is confirmed</p>
+        <p class="subline">E-ticket issued and ready for your trip</p>
+      </div>
+
+      <!-- Glassmorphic route card -->
+      <div class="pass-wrap">
+        <div class="pass">
+          <div class="pass-route">
+            <table width="100%">
+              <tr>
+                <td width="42%">
+                  <div class="airport-code">{{.FromAirport}}</div>
+                  <div class="airport-city">Departure</div>
+                </td>
+                <td width="16%" class="flight-path">
+                  <span class="dash"></span>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" style="margin: 0 auto;">
+                    <path
+                      d="M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2.5 1.5V22l4-1 4 1v-1.5L13.5 19v-5.5L21 16z"
+                      fill="#123a63" />
+                  </svg>
+                </td>
+                <td width="42%" style="text-align: right;">
+                  <div class="airport-code">{{.ToAirport}}</div>
+                  <div class="airport-city">Arrival</div>
+                </td>
+              </tr>
+            </table>
+            <table width="100%" class="time-row">
+              <tr>
+                <td width="42%">{{.DepartureTime}}</td>
+                <td width="16%"></td>
+                <td width="42%" style="text-align: right;">{{.ArrivalTime}}</td>
+              </tr>
+            </table>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="pass-details">
+            <div class="detail-row">
+              <div class="detail-label">Flight</div>
+              <div class="detail-value">{{.FlightNumber}}</div>
+            </div>
+            <div class="detail-row">
+              <div class="detail-label">Seat</div>
+              <div class="detail-value">{{.SeatNumber}}</div>
+            </div>
+            <div class="detail-row">
+              <div class="detail-label">Ticket number</div>
+              <div class="detail-value">{{.TicketNumber}}</div>
+            </div>
+            <div class="detail-row">
+              <div class="detail-label">Booking reference</div>
+              <div class="detail-value">{{.PNR}}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Greeting -->
+      <div class="content">
+        <p class="greeting">Hello {{.PassengerName}},</p>
+        <p class="body-text">
+          This confirms your reservation and e-ticket issuance. Your flight details are summarized
+          above for your records — please retain this confirmation for check-in and boarding.
+        </p>
+      </div>
+
+      <!-- Info panel -->
+      <div class="info-panel">
+        <span class="info-title">Before you travel</span>
+        Online check-in opens 48 hours before departure. We recommend arriving at the airport
+        at least 2 hours prior to your scheduled departure time.
+      </div>
+
+      <!-- CTA -->
+      <div class="cta-wrap">
+        <a href="#" class="button">Manage Booking</a><br>
+        <a href="#" class="secondary-link">Add to calendar</a>
+      </div>
+
+      <!-- Footer -->
+      <div class="footer">
+        <p class="footer-thanks">Thank you for choosing Nimbus Airways</p>
+        <p class="footer-sub">We wish you a pleasant and comfortable journey.</p>
+      </div>
+
+    </div>
+  </div>
+</body>
+
+</html>

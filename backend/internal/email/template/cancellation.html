@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>Booking Cancelled — Nimbus Airways</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap"
+    rel="stylesheet">
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body,
+    html {
+      margin: 0;
+      padding: 0;
+      width: 100% !important;
+      background-color: #0a0e16;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+      color: #0f2942;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    table {
+      border-collapse: collapse;
+      mso-table-lspace: 0pt;
+      mso-table-rspace: 0pt;
+    }
+
+    img {
+      border: 0;
+      outline: none;
+      text-decoration: none;
+      -ms-interpolation-mode: bicubic;
+    }
+
+    .wrapper {
+      width: 100%;
+      padding: 40px 16px;
+      background-color: #131c2b;
+      background: radial-gradient(circle at 12% 8%, rgba(184, 138, 108, 0.18), transparent 42%),
+        radial-gradient(circle at 88% 0%, rgba(148, 163, 184, 0.16), transparent 40%),
+        linear-gradient(165deg, #070b12 0%, #131c2b 45%, #1c2839 100%);
+    }
+
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      background-color: #ffffff;
+      border-radius: 22px;
+      overflow: hidden;
+      box-shadow: 0 40px 80px -30px rgba(0, 0, 0, 0.6);
+    }
+
+    /* ---------- Header ---------- */
+    .header {
+      background-color: #212b3c;
+      background: linear-gradient(165deg, #171f2d 0%, #212b3c 55%, #2b3648 100%);
+      padding: 36px 40px 40px;
+      text-align: left;
+    }
+
+    .brand-row {
+      width: 100%;
+      margin-bottom: 30px;
+    }
+
+    .brand {
+      font-size: 12px;
+      letter-spacing: 3.5px;
+      text-transform: uppercase;
+      color: #a9b6c7;
+      font-weight: 600;
+    }
+
+    .status-pill {
+      display: inline-block;
+      background-color: #3a2b27;
+      border: 1px solid rgba(224, 158, 132, 0.35);
+      color: #f6ded1;
+      font-size: 10px;
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+      font-weight: 600;
+      padding: 7px 14px 6px;
+      border-radius: 999px;
+    }
+
+    .status-pill .dot {
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background-color: #e0956e;
+      margin-right: 6px;
+      vertical-align: middle;
+    }
+
+    .headline-row {
+      margin: 20px 0 8px;
+    }
+
+    .status-icon {
+      display: inline-block;
+      vertical-align: middle;
+      margin-right: 12px;
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background-color: #3b2a24;
+      border: 1px solid rgba(224, 149, 110, 0.3);
+      text-align: center;
+      line-height: 34px;
+      color: #e0956e;
+      font-size: 14px;
+      font-weight: bold;
+    }
+
+    .headline {
+      font-family: 'Fraunces', Georgia, serif;
+      color: #ffffff;
+      font-size: 27px;
+      font-weight: 600;
+      letter-spacing: -0.2px;
+      display: inline;
+      vertical-align: middle;
+    }
+
+    .subline {
+      color: #aab8c9;
+      font-size: 13px;
+      margin: 0;
+      letter-spacing: 0.2px;
+    }
+
+    /* ---------- Pass card ---------- */
+    .pass-wrap {
+      padding: 24px;
+      background-color: #2b3648;
+    }
+
+    .pass {
+      background-color: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 20px;
+      box-shadow: 0 14px 28px -12px rgba(15, 20, 30, 0.3);
+      overflow: hidden;
+    }
+
+    .accent-line {
+      height: 4px;
+      background-color: #c07d55;
+      background: linear-gradient(90deg, #c07d55, #e6b48e 50%, #c07d55);
+    }
+
+    .pass-route {
+      padding: 30px;
+      position: relative;
+    }
+
+    .cancelled-badge {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: #a8593a;
+      background-color: #f7ebe6;
+      border: 1px solid #e8cec4;
+      padding: 5px 10px;
+      border-radius: 6px;
+      margin-bottom: 20px;
+    }
+
+    .airport-code {
+      font-family: 'Fraunces', Georgia, serif;
+      font-size: 30px;
+      font-weight: 600;
+      color: #0a2647;
+      letter-spacing: 0.2px;
+      opacity: 0.5;
+      text-decoration: line-through;
+      text-decoration-color: #c4785c;
+    }
+
+    .airport-city {
+      font-size: 11px;
+      color: #7c93ab;
+      margin-top: 5px;
+      text-transform: uppercase;
+      letter-spacing: 1.2px;
+      font-weight: 600;
+    }
+
+    .flight-path {
+      text-align: center;
+      padding: 0 15px;
+      vertical-align: middle;
+      color: #d7bba6;
+    }
+
+    .time-row td {
+      padding-top: 12px;
+      font-size: 12px;
+      font-weight: 600;
+      color: #9aa9bb;
+      letter-spacing: 0.2px;
+    }
+
+    .divider {
+      margin: 0 30px;
+      border-top: 1px solid #f1f4f8;
+    }
+
+    .pass-details {
+      padding: 20px 30px 8px;
+    }
+
+    .detail-row {
+      width: 100%;
+      padding: 10px 0;
+      border-bottom: 1px solid #f1f4f8;
+    }
+
+    .detail-row td {
+      padding: 8px 0;
+      border-bottom: 1px solid #f1f4f8;
+    }
+
+    .detail-row tr:last-child td {
+      border-bottom: none;
+    }
+
+    .detail-label {
+      color: #5c7692;
+      font-size: 12.5px;
+      font-weight: 500;
+    }
+
+    .detail-value {
+      text-align: right;
+      font-weight: 700;
+      color: #0a2647;
+      font-size: 13px;
+      letter-spacing: 0.3px;
+    }
+
+    .pass-footer-strip {
+      background-color: #faf5f3;
+      padding: 14px 30px;
+      font-size: 11px;
+      color: #a8593a;
+      letter-spacing: 0.3px;
+      border-top: 1px solid #f0ded7;
+      font-weight: 600;
+      text-align: center;
+    }
+
+    /* ---------- Body copy ---------- */
+    .content {
+      padding: 24px 40px 10px;
+    }
+
+    .greeting {
+      font-size: 17px;
+      font-weight: 700;
+      margin: 0 0 10px;
+      color: #0a2647;
+    }
+
+    .body-text {
+      color: #5c7692;
+      line-height: 1.75;
+      font-size: 14px;
+      margin: 0;
+    }
+
+    /* ---------- Refund summary ---------- */
+    .refund-panel {
+      margin: 20px 40px;
+      background-color: #f2f9f5;
+      border: 1px solid #d5e9dc;
+      border-radius: 14px;
+      overflow: hidden;
+    }
+
+    .refund-panel-header {
+      padding: 16px 20px 8px;
+    }
+
+    .refund-panel-title {
+      font-size: 12.5px;
+      font-weight: 700;
+      color: #0a2647;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+
+    .refund-check {
+      color: #1d7a4c;
+      font-weight: bold;
+      font-size: 16px;
+      line-height: 1;
+      text-align: right;
+    }
+
+    .refund-row table {
+      width: 100%;
+    }
+
+    .refund-row td {
+      padding: 10px 20px;
+      border-bottom: 1px solid #e1eee6;
+    }
+
+    .refund-row tr:last-child td {
+      border-bottom: none;
+    }
+
+    .refund-label {
+      color: #5c7692;
+      font-size: 13px;
+    }
+
+    .refund-value {
+      text-align: right;
+      font-weight: 700;
+      color: #0a2647;
+      font-size: 13px;
+    }
+
+    .refund-value.highlight {
+      color: #1d7a4c;
+    }
+
+    .info-panel {
+      margin: 20px 40px;
+      background-color: #f8f9fb;
+      border: 1px solid #edf0f4;
+      border-radius: 14px;
+      padding: 18px 20px;
+      font-size: 12.5px;
+      color: #5c7692;
+      line-height: 1.7;
+    }
+
+    .info-panel .info-title {
+      display: block;
+      font-weight: 700;
+      color: #0a2647;
+      margin-bottom: 4px;
+      font-size: 12.5px;
+      letter-spacing: 0.3px;
+      text-transform: uppercase;
+    }
+
+    /* ---------- CTA ---------- */
+    .cta-wrap {
+      text-align: center;
+      padding: 24px 40px;
+    }
+
+    .button {
+      display: inline-block;
+      background-color: #0a2647;
+      color: #ffffff !important;
+      text-decoration: none;
+      padding: 14px 34px;
+      border-radius: 11px;
+      font-weight: 600;
+      font-size: 13.5px;
+      letter-spacing: 0.3px;
+    }
+
+    .secondary-link {
+      display: inline-block;
+      margin-top: 18px;
+      color: #7c93ab;
+      font-size: 12px;
+      text-decoration: none;
+      border-bottom: 1px solid rgba(124, 147, 171, 0.4);
+    }
+
+    /* ---------- Footer ---------- */
+    .footer {
+      padding: 24px 40px 36px;
+      text-align: center;
+      border-top: 1px solid #eef2f7;
+    }
+
+    .footer-thanks {
+      color: #0a2647;
+      font-weight: 600;
+      font-size: 13.5px;
+      margin: 0 0 6px;
+    }
+
+    .footer-sub {
+      color: #a3b4c6;
+      font-size: 11.5px;
+      margin: 0;
+    }
+
+    @media (max-width: 480px) {
+
+      .header,
+      .content,
+      .cta-wrap,
+      .footer {
+        padding-left: 22px;
+        padding-right: 22px;
+      }
+
+      .info-panel,
+      .refund-panel {
+        margin-left: 22px;
+        margin-right: 22px;
+      }
+
+      .airport-code {
+        font-size: 24px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrapper">
+    <!--[if mso | IE]>
+    <table align="center" border="0" cellpadding="0" cellspacing="0" width="600" style="width:600px;">
+      <tr>
+        <td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;">
+    <![endif]-->
+    <div class="container">
+
+      <!-- Header -->
+      <div class="header">
+
+        <table width="100%" border="0" cellpadding="0" cellspacing="0" class="brand-row">
+          <tr>
+            <td align="left" valign="middle">
+              <span class="brand">Nimbus Airways</span>
+            </td>
+            <td align="right" valign="middle">
+              <span class="status-pill"><span class="dot"></span>Cancelled</span>
+            </td>
+          </tr>
+        </table>
+
+        <div class="headline-row">
+          <span class="status-icon">&#10006;</span>
+          <span class="headline">Your booking has been cancelled</span>
+        </div>
+        <p class="subline">Cancellation confirmed for the flight below</p>
+      </div>
+
+      <!-- Route card -->
+      <div class="pass-wrap">
+        <div class="pass">
+          <div class="accent-line"></div>
+          <div class="pass-route">
+
+            <table width="100%" border="0" cellpadding="0" cellspacing="0">
+              <tr>
+                <td align="right">
+                  <span class="cancelled-badge">Cancelled</span>
+                </td>
+              </tr>
+            </table>
+
+            <table width="100%" border="0" cellpadding="0" cellspacing="0">
+              <tr>
+                <td width="38%">
+                  <div class="airport-code">{{.FromAirport}}</div>
+                  <div class="airport-city">Departure</div>
+                </td>
+
+                <!-- RESTORED: Email-safe dashed path line -->
+                <td width="24%" class="flight-path" align="center" valign="top" style="padding-top: 15px;">
+                  <table width="100%" border="0" cellpadding="0" cellspacing="0">
+                    <tr>
+                      <td style="border-top: 2px dashed #d7bba6; font-size: 0px; line-height: 0px;" height="1">&nbsp;
+                      </td>
+                    </tr>
+                  </table>
+                  <div style="height: 6px; font-size: 0px; line-height: 0px;">&nbsp;</div>
+                  <span style="font-size: 24px; color: #d7bba6; line-height: 1;">&#9992;</span>
+                </td>
+
+                <td width="38%" style="text-align: right;">
+                  <div class="airport-code">{{.ToAirport}}</div>
+                  <div class="airport-city">Arrival</div>
+                </td>
+              </tr>
+            </table>
+
+            <table width="100%" class="time-row" border="0" cellpadding="0" cellspacing="0">
+              <tr>
+                <td width="50%">{{.DepartureTime}}</td>
+                <td width="50%" style="text-align: right;">{{.ArrivalTime}}</td>
+              </tr>
+            </table>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="pass-details">
+            <table width="100%" class="detail-row" border="0" cellpadding="0" cellspacing="0">
+              <tr>
+                <td class="detail-label">Flight</td>
+                <td class="detail-value">{{.FlightNumber}}</td>
+              </tr>
+              <tr>
+                <td class="detail-label">Seat</td>
+                <td class="detail-value">{{.SeatNumber}}</td>
+              </tr>
+              <tr>
+                <td class="detail-label">Ticket number</td>
+                <td class="detail-value">{{.TicketNumber}}</td>
+              </tr>
+              <tr>
+                <td class="detail-label">Booking reference</td>
+                <td class="detail-value">{{.PNR}}</td>
+              </tr>
+            </table>
+          </div>
+
+          <div class="pass-footer-strip">
+            This ticket is no longer valid for travel.
+          </div>
+        </div>
+      </div>
+
+      <!-- Greeting -->
+      <div class="content">
+        <p class="greeting">Hello {{.PassengerName}},</p>
+        <p class="body-text">
+          We're writing to confirm that the booking below has been cancelled. If this cancellation
+          was not requested by you, please contact our support team right away.
+        </p>
+      </div>
+
+      <!-- Refund summary -->
+      <div class="refund-panel">
+        <div class="refund-panel-header">
+          <table width="100%" border="0" cellpadding="0" cellspacing="0">
+            <tr>
+              <td class="refund-panel-title" align="left" valign="middle">Refund status</td>
+              <td class="refund-check" align="right" valign="middle">&#10004;</td>
+            </tr>
+          </table>
+        </div>
+
+        <div class="refund-row">
+          <table border="0" cellpadding="0" cellspacing="0" width="100%">
+            <tr>
+              <td class="refund-label">Current status</td>
+              <td class="refund-value highlight">Refund Initiated</td>
+            </tr>
+            <tr>
+              <td class="refund-label">Refund method</td>
+              <td class="refund-value">Original payment</td>
+            </tr>
+            <tr>
+              <td class="refund-label">Expected timeline</td>
+              <td class="refund-value">5–7 business days</td>
+            </tr>
+          </table>
+        </div>
+      </div>
+
+      <!-- Info panel -->
+      <div class="info-panel">
+        <span class="info-title">Need to travel?</span>
+        You can book a new flight anytime, or reach out to our support team if you'd like help
+        finding an alternative that fits your original plans.
+      </div>
+
+      <!-- CTA -->
+      <div class="cta-wrap">
+        <a href="#" class="button">Book a New Flight</a><br>
+        <a href="#" class="secondary-link">Contact support</a>
+      </div>
+
+      <!-- Footer -->
+      <div class="footer">
+        <p class="footer-thanks">We're sorry for the inconvenience</p>
+        <p class="footer-sub">Our team is here to help if you have any questions.</p>
+      </div>
+
+    </div>
+    <!--[if mso | IE]>
+        </td>
+      </tr>
+    </table>
+    <![endif]-->
+  </div>
+</body>
+
+</html>
