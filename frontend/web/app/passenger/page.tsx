@@ -27,8 +27,8 @@ import { COUNTRIES } from "@/lib/countries";
 const passengerSchema = z.object({
   firstName: z.string().min(1, "First name is required"),
   lastName: z.string().min(1, "Last name is required"),
-  gender: z.enum(["male", "female", "other"], { required_error: "Gender is required" }),
-  dateOfBirth: z.date({ required_error: "Date of birth is required", invalid_type_error: "Date of birth is required" }),
+  gender: z.enum(["male", "female", "other"], { message: "Gender is required" }),
+  dateOfBirth: z.date({ message: "Date of birth is required" }),
   nationality: z.string().min(1, "Nationality is required"),
   email: z.string().email("Invalid email address"),
   phone: z.string().min(5, "Phone number is required"),
